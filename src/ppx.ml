@@ -4,21 +4,17 @@ module Helper = Ppxlib.Ast_helper
 
 module Builder = struct
   (* Ast_builder.Default sets attributes are always set to the empty list.
-     This wrapper re-exports all used fn with attributes arg. *)
+     This wrapper re-exports all used fns with attrs arg *)
 
   include Ast_builder.Default
 
-  let with_attrs e attrs =
-    match e.pexp_attributes with
-    | [] -> { e with pexp_attributes = attrs }
-    | _ -> e
-
   let pexp_apply ~loc ?(attrs = []) e args =
-    with_attrs (Ast_builder.Default.pexp_apply ~loc e args) attrs
+    let e = Ast_builder.Default.pexp_apply ~loc e args in
+    { e with pexp_attributes = attrs }
 
   let value_binding ~loc ~pat ~expr ~attrs =
     let vb = Ast_builder.Default.value_binding ~loc ~pat ~expr in
-    match attrs with [] -> vb | pvb_attributes -> { vb with pvb_attributes }
+    { vb with pvb_attributes = attrs }
 end
 
 let rec find_opt p = function
@@ -314,10 +310,6 @@ let makePropsExternal fnName loc namedArgListWithKeyAndRef propsType =
   Builder.pstr_primitive ~loc
     (makePropsValue fnName loc namedArgListWithKeyAndRef propsType)
 
-let makePropsExternal fnName loc namedArgListWithKeyAndRef propsType =
-  Builder.pstr_primitive ~loc
-    (makePropsValue fnName loc namedArgListWithKeyAndRef propsType)
-
 (* Build an AST node for the signature of the `external` definition *)
 let makePropsExternalSig fnName loc namedArgListWithKeyAndRef propsType =
   { psig_loc = loc
@@ -527,8 +519,8 @@ let rewritter =
                         String.concat "." (Longident.flatten_exn txt) ^ "(...)"
                     | _ -> "..."
                   in
-                  Location.prerr_warning pattern.ppat_loc
-                    (Preprocessor
+                  raise
+                    (Invalid_argument
                        (Printf.sprintf
                           "ReasonReact: optional argument annotations must \
                            have explicit `option`. Did you mean \
