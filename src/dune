@@ -1,7 +1,7 @@
 (library
  (name react_jsx_ppx)
  (public_name react-jsx-ppx.ppx)
- (libraries ppxlib)
+ (libraries ppxlib compiler-libs.common)
  (preprocess
   (pps ppxlib.metaquot))
  (kind ppx_rewriter))

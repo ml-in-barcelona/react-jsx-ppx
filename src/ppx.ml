@@ -1,5 +1,4 @@
-[@@@warning "-26"]
-
+module OCaml_Location = Location
 open Ppxlib
 module Helper = Ppxlib.Ast_helper
 
@@ -222,16 +221,14 @@ let pluckLabelDefaultLocType (label, default, _, _, loc, type_) =
 let filenameFromLoc (pstr_loc : Location.t) =
   let fileName =
     match pstr_loc.loc_start.pos_fname with
-    (* | "" -> !OCaml_Location.input_name *)
-    | "" -> "N/A"
+    | "" -> !OCaml_Location.input_name
     | fileName -> fileName
   in
   let fileName =
     try Filename.chop_extension (Filename.basename fileName)
     with Invalid_argument _ -> fileName
   in
-  let fileName = String.capitalize_ascii fileName in
-  fileName
+  String.capitalize_ascii fileName
 
 (* Build a string representation of a module name with segments separated by $ *)
 let makeModuleName fileName nestedModules fnName =
