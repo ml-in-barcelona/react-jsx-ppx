@@ -6,6 +6,24 @@ let lower_inner_html = <div dangerouslySetInnerHTML={"__html": text} />;
 let lower_with_style =
   <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
 
+// Components
+
+[@react.component]
+let make = (~name="") => {
+  <>
+    <div> {React.string("First " ++ name)} </div>
+    <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
+  </>;
+};
+
+[@react.component]
+let make = (~name="") => {
+  <>
+    <div> {React.string("First " ++ name)} </div>
+    <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
+  </>;
+};
+
 /*
 module React_component_without_props = {
   [@react.component]
@@ -18,26 +36,18 @@ module React_component_without_props = {
 
 let upper = <React_component_without_props lola="flores" />;
 
+*/
 
-// Components
 
-[@react.component]
-let make = (~name="") => {
-  <>
-    <div> {React.string("First " ++ name)} </div>
-    <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
-  </>;
-};
-
-module Memo = {
+/* module Memo = {
   [@react.component]
   let make =
     React.memo((~a) => {
       <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
     });
-};
+}; */
 
-module MemoCustomCompareProps = {
+/* module MemoCustomCompareProps = {
   [@react.component]
   let make =
     React.memo(
@@ -46,7 +56,7 @@ module MemoCustomCompareProps = {
       },
       (prevPros, nextProps) => false,
     );
-};
+}; */
 
 let fragment = foo => [@bla] <> foo </>;
 
@@ -129,7 +139,7 @@ let make = (~name="joe") => {
   <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
 };
 
-module App = {
+/* module App = {
   [@react.component]
   let make = () => {
     <html>
@@ -140,13 +150,13 @@ module App = {
       </body>
     </html>;
   };
-};
+}; */
 
 /* It shoudn't remove this :/ */
-let () = Dream.run();
+let () = Module.fn();
 let l = 33;
 
-module Page = {
+/* module Page = {
   [@react.component]
   let make = (~children, ~moreProps) => {
     <html>
@@ -159,17 +169,17 @@ module Page = {
       </body>
     </html>;
   };
-};
+}; */
 
 let upperWithChildren =
   <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;
 
-module Container = {
+/* module Container = {
   [@react.component]
   let make = (~children) => {
     <div> children </div>;
   };
-};
+}; */
 
 let lower_child_static = <div> <span /> </div>;
 let lower_child_ident = <div> lolaspa </div>;
@@ -190,24 +200,23 @@ let upper_child_ident = <Div> lola </Div>;
 
 <p> {React.string(greeting)} </p>;
 
-module External = {
+/* module External = {
   [@react.component] [@otherAttribute "bla"]
   external component: (~a: int, ~b: string) => React.element =
     {|require("my-react-library").MyReactComponent|};
-};
+}; */
 
-module type X_int = {let x: int;};
+/* module type X_int = {let x: int;}; */
 
-module Func = (M: X_int) => {
+/* module Func = (M: X_int) => {
   let x = M.x + 1;
   [@react.component]
   let make = (~a, ~b, _) => {
     print_endline("This function should be named `Test$Func`", M.x);
     <div />;
   };
-};
+}; */
 
 let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
 
 <Link url="/hello" txt="hiya" />;
-*/
