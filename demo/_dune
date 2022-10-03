@@ -1,6 +1,0 @@
-(executable
- (name index)
- (public_name demo)
- (package react-jsx-ppx)
- (preprocess
-  (pps react_jsx_ppx)))
