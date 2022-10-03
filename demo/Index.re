@@ -1,3 +1,7 @@
-/* let app = ReactDOM.renderToStaticMarkup(<App />); */
+module Dummy = {
+  [@react.component]
+  let make = (~lola) => <div> {React.string(lola)} </div>;
+};
 
-Js.Console.error("Rendering in the #root element\n" ++ "wast");
+[@react.component]
+let make = () => <Dummy lola="flores" />;
