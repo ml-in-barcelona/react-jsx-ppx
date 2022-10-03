@@ -1,0 +1,12 @@
+(env
+ (dev
+  (flags
+   (:standard -w -9))))
+
+(library
+ (name react_jsx_ppx)
+ (public_name react-jsx-ppx.ppx)
+ (libraries ppxlib)
+ (preprocess
+  (pps ppxlib.metaquot))
+ (kind ppx_rewriter))
