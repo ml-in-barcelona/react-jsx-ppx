@@ -11,7 +11,7 @@
 (source
  (github ml-in-barcelona/react-jsx-ppx))
 
-(generate_opam_files false)
+(generate_opam_files true)
 
 (implicit_transitive_deps false)
 
@@ -27,10 +27,7 @@
 
   (reason (= 3.8.1))
 
-  ;; Test dependencies
-  (alcotest :with-test)
-
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
-  (ocamlformat (and (= 0.21.0) :with-test))
+  (ocamlformat (and (= 0.23.0) :with-test))
   (ocaml-lsp-server :with-test)
 ))
