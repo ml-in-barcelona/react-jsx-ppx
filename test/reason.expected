@@ -18,7 +18,37 @@ let lower_with_style =
               ~style:((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
                          [@reason.raw_literal "gainsboro"]) ())
               [@reason.preserve_braces ]) ()) [||]
-external makeProps : ?key:string -> unit -> <  >  Js.t = ""[@@bs.obj ]
+module React_component_without_props =
+  struct
+    external makeProps :
+      lola:'lola ->
+        cosis:'cosis ->
+          ?key:string -> unit -> < lola: 'lola  ;cosis: 'cosis   >  Js.t = ""
+    [@@bs.obj ]
+    let make =
+      ((fun ~lola ->
+          ((fun ~cosis ->
+              ((Js.log cosis;
+                ((div
+                    ~children:[((React.string lola)
+                              [@reason.preserve_braces ])] ())
+                [@JSX ]))
+              [@reason.preserve_braces ]))
+          [@warning "-16"]))
+      [@warning "-16"])
+    let make =
+      let Test_reason$React_component_without_props
+        (Props : < lola: 'lola  ;cosis: 'cosis   >  Js.t) =
+        make ~cosis:(Props ## cosis) ~lola:(Props ## lola) in
+      Test_reason$React_component_without_props
+  end
+let upper =
+  React.createElement React_component_without_props.make
+    (React_component_without_props.makeProps ~lola:(("flores")
+       [@reason.raw_literal "flores"]) ())
+external makeProps :
+  ?name:'name -> ?key:string -> unit -> < name: 'name option   >  Js.t = ""
+[@@bs.obj ]
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       (([((div
@@ -34,8 +64,13 @@ let make =
         [@JSX ])])
       [@reason.preserve_braces ][@JSX ]))
   [@warning "-16"])
-let make = let Test_reason (Props : <  >  Js.t) = make in Test_reason
-external makeProps : ?key:string -> unit -> <  >  Js.t = ""[@@bs.obj ]
+let make =
+  let Test_reason (Props : < name: 'name option   >  Js.t) =
+    make ?name:(Props ## name) in
+  Test_reason
+external makeProps :
+  ?name:'name -> ?key:string -> unit -> < name: 'name option   >  Js.t = ""
+[@@bs.obj ]
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       (([((div
@@ -51,7 +86,29 @@ let make =
         [@JSX ])])
       [@reason.preserve_braces ][@JSX ]))
   [@warning "-16"])
-let make = let Test_reason (Props : <  >  Js.t) = make in Test_reason
+let make =
+  let Test_reason (Props : < name: 'name option   >  Js.t) =
+    make ?name:(Props ## name) in
+  Test_reason
+module Memo =
+  struct
+    external makeProps :
+      a:'a -> ?key:string -> unit -> < a: 'a   >  Js.t = ""[@@bs.obj ]
+    let make =
+      ((fun ~a ->
+          ((div
+              ~children:[(((Printf.sprintf (("`a` is %s")
+                              [@reason.raw_literal "`a` is %s"]) a)
+                             |> React.string)
+                        [@reason.preserve_braces ])] ())
+          [@reason.preserve_braces ][@JSX ]))
+      [@warning "-16"])
+    let make =
+      React.memo
+        (let Test_reason$Memo (Props : < a: 'a   >  Js.t) =
+           make ~a:(Props ## a) in
+         Test_reason$Memo)
+  end
 let fragment foo = (([foo])[@bla ][@JSX ])
 let polyChildrenFragment foo bar = (([foo; bar])[@JSX ])
 let nestedFragment foo bar baz = (([foo; (([bar; baz])[@JSX ])])[@JSX ])
@@ -132,26 +189,6 @@ let lowerWithChildrenComplex =
 let nestedElement =
   React.createElement Foo.Bar.make
     (Foo.Bar.makeProps ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ())
-let t =
-  React.createElement FancyButton.make
-    (FancyButton.makeProps ~ref:buttonRef
-       ~children:(ReactDOMRe.createDOMElementVariadic "div" [||]) ())
-let t =
-  ReactDOMRe.createDOMElementVariadic "button"
-    ~props:(ReactDOMRe.domProps ~ref ~className:(("FancyButton")
-              [@reason.raw_literal "FancyButton"]) ()) [|children|]
-external makeProps : ?key:string -> unit -> <  >  Js.t = ""[@@bs.obj ]
-let make =
-  ((fun ~children ->
-      ((fun ~ref ->
-          ((button ~ref ~className:(("FancyButton")
-              [@reason.raw_literal "FancyButton"]) ~children:[children] ())
-          [@reason.preserve_braces ][@JSX ]))
-      [@warning "-16"]))
-  [@warning "-16"])
-let make =
-  React.forwardRef
-    (let Test_reason (Props : <  >  Js.t) = make in Test_reason)
 let testAttributes =
   ReactDOMRe.createDOMElementVariadic "div"
     ~props:(ReactDOMRe.domProps ~translate:(("yes")
@@ -184,7 +221,12 @@ let randomElement =
   ReactDOMRe.createDOMElementVariadic "text"
     ~props:(ReactDOMRe.domProps ~dx:(("1 2")[@reason.raw_literal "1 2"])
               ~dy:(("3 4")[@reason.raw_literal "3 4"]) ()) [||]
-external makeProps : ?key:string -> unit -> <  >  Js.t = ""[@@bs.obj ]
+external makeProps :
+  name:'name ->
+    ?isDisabled:'isDisabled ->
+      ?key:string ->
+        unit -> < name: 'name  ;isDisabled: 'isDisabled option   >  Js.t = ""
+[@@bs.obj ]
 let make =
   ((fun ~name ->
       ((fun ?isDisabled ->
@@ -194,8 +236,14 @@ let make =
           [@reason.preserve_braces ]))
       [@warning "-16"]))
   [@warning "-16"])
-let make = let Test_reason (Props : <  >  Js.t) = make in Test_reason
-external makeProps : ?key:string -> unit -> <  >  Js.t = ""[@@bs.obj ]
+let make =
+  let Test_reason
+    (Props : < name: 'name  ;isDisabled: 'isDisabled option   >  Js.t) =
+    make ?isDisabled:(Props ## isDisabled) ~name:(Props ## name) in
+  Test_reason
+external makeProps :
+  ?name:'name -> ?key:string -> unit -> < name: 'name option   >  Js.t = ""
+[@@bs.obj ]
 let make =
   ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
       ((div
@@ -205,7 +253,10 @@ let make =
                     [@reason.preserve_braces ])] ())
       [@reason.preserve_braces ][@JSX ]))
   [@warning "-16"])
-let make = let Test_reason (Props : <  >  Js.t) = make in Test_reason
+let make =
+  let Test_reason (Props : < name: 'name option   >  Js.t) =
+    make ?name:(Props ## name) in
+  Test_reason
 let () = Module.fn ()
 let l = 33
 let upperWithChildren =

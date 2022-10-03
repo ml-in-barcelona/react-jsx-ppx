@@ -257,7 +257,6 @@ let makeModuleName fileName nestedModules fnName =
 let rec recursivelyMakeNamedArgsForExternal list args =
   match list with
   | (label, default, loc, interiorType) :: tl ->
-      print_endline "let makePropsValue fnName";
       recursivelyMakeNamedArgsForExternal tl
         (Builder.ptyp_arrow ~loc label
            (match (label, interiorType, default) with
@@ -508,7 +507,7 @@ let rewritter =
     [@@raises Invalid_argument]
   in
 
-  let recursivelyTransformNamedArgsForMake mapper expr list =
+  let rec transformNamedArgsForMake mapper expr list =
     let expr = mapper#expression expr in
     match expr.pexp_desc with
     (* TODO: make this show up with a loc. *)
@@ -522,46 +521,47 @@ let rewritter =
           (Invalid_argument
              "Ref cannot be passed as a normal prop. Please use `forwardRef` \
               API instead.")
-    (* | Pexp_fun (arg, default, pattern, expression)
-       when isOptional arg || isLabelled arg ->
-         let () =
-           match (isOptional arg, pattern, default) with
-           | true, { ppat_desc = Ppat_constraint (_, { ptyp_desc }) }, None -> (
-               match ptyp_desc with
-               | Ptyp_constr ({ txt = Lident "option" }, [ _ ]) -> ()
-               | _ ->
-                   let currentType =
-                     match ptyp_desc with
-                     | Ptyp_constr ({ txt }, []) ->
-                         String.concat "." (Longident.flatten_exn txt)
-                     | Ptyp_constr ({ txt }, _innerTypeArgs) ->
-                         String.concat "." (Longident.flatten_exn txt) ^ "(...)"
-                     | _ -> "..."
-                   in
-                   raise
-                     (Invalid_argument
-                        (Printf.sprintf
-                           "ReasonReact: optional argument annotations must \
-                            have explicit `option`. Did you mean \
-                            `option(%s)=?`?"
-                           currentType)))
-           | _ -> ()
-         in
-         let alias =
-           match pattern with
-           | { ppat_desc = Ppat_alias (_, { txt; _ }) | Ppat_var { txt; _ } } ->
-               txt
-           | { ppat_desc = Ppat_any } -> "_"
-           | _ -> getLabel arg
-         in
-         let type_ =
-           match pattern with
-           | { ppat_desc = Ppat_constraint (_, type_) } -> Some type_
-           | _ -> None
-         in
-
-         recursivelyTransformNamedArgsForMake mapper expression
-           ((arg, default, pattern, alias, pattern.ppat_loc, type_) :: list) *)
+    | Pexp_fun (arg, default, pattern, expression)
+      when isOptional arg || isLabelled arg ->
+        let () =
+          match (isOptional arg, pattern, default) with
+          | true, { ppat_desc = Ppat_constraint (_, { ptyp_desc; _ }); _ }, None
+            -> (
+              match ptyp_desc with
+              | Ptyp_constr ({ txt = Lident "option"; _ }, [ _ ]) -> ()
+              | _ ->
+                  let currentType =
+                    match ptyp_desc with
+                    | Ptyp_constr ({ txt; _ }, []) ->
+                        String.concat "." (Longident.flatten_exn txt)
+                    | Ptyp_constr ({ txt; _ }, _innerTypeArgs) ->
+                        String.concat "." (Longident.flatten_exn txt) ^ "(...)"
+                    | _ -> "..."
+                  in
+                  raise
+                    (Invalid_argument
+                       (Printf.sprintf
+                          "ReasonReact: optional argument annotations must \
+                           have explicit `option`. Did you mean \
+                           `option(%s)=?`?"
+                          currentType)))
+          | _ -> ()
+        in
+        let alias =
+          match pattern with
+          | { ppat_desc = Ppat_alias (_, { txt; _ }) | Ppat_var { txt; _ }; _ }
+            ->
+              txt
+          | { ppat_desc = Ppat_any; _ } -> "_"
+          | _ -> getLabel arg
+        in
+        let type_ =
+          match pattern with
+          | { ppat_desc = Ppat_constraint (_, type_); _ } -> Some type_
+          | _ -> None
+        in
+        transformNamedArgsForMake mapper expression
+          ((arg, default, pattern, alias, pattern.ppat_loc, type_) :: list)
     | Pexp_fun
         ( Nolabel
         , _
@@ -913,9 +913,7 @@ let rewritter =
             let props = getPropsAttr payload in
             (* do stuff here! *)
             let namedArgList, forwardRef =
-              recursivelyTransformNamedArgsForMake mapper
-                (modifiedBindingOld binding)
-                []
+              transformNamedArgsForMake mapper (modifiedBindingOld binding) []
             in
             let namedArgListWithKeyAndRef =
               ( optional "key"
@@ -1290,10 +1288,9 @@ let rewritter =
       (match module_binding.pmb_name.txt with
       | None -> ()
       | Some name -> nestedModules := name :: !nestedModules);
-      let mapped = mapper#module_binding module_binding in
+      let mapped = super#module_binding module_binding in
       let _ = nestedModules := List.tl !nestedModules in
       mapped
-    [@@raises Failure]
   end
 
 let () =
