@@ -189,6 +189,34 @@ let lowerWithChildrenComplex =
 let nestedElement =
   React.createElement Foo.Bar.make
     (Foo.Bar.makeProps ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ())
+let t =
+  React.createElement FancyButton.make
+    (FancyButton.makeProps ~ref:buttonRef
+       ~children:(ReactDOMRe.createDOMElementVariadic "div" [||]) ())
+let t =
+  ReactDOMRe.createDOMElementVariadic "button"
+    ~props:(ReactDOMRe.domProps ~ref ~className:(("FancyButton")
+              [@reason.raw_literal "FancyButton"]) ()) [|children|]
+external makeProps :
+  children:'children ->
+    buttonRef:'buttonRef ->
+      ?key:string ->
+        unit -> < children: 'children  ;buttonRef: 'buttonRef   >  Js.t = ""
+[@@bs.obj ]
+let make =
+  ((fun ~children ->
+      ((fun ~buttonRef ->
+          ((button ~ref:buttonRef ~className:(("FancyButton")
+              [@reason.raw_literal "FancyButton"]) ~children:[children] ())
+          [@reason.preserve_braces ][@JSX ]))
+      [@warning "-16"]))
+  [@warning "-16"])
+let make =
+  React.forwardRef
+    (let Test_reason
+       (Props : < children: 'children  ;buttonRef: 'buttonRef   >  Js.t) =
+       make ~buttonRef:(Props ## buttonRef) ~children:(Props ## children) in
+     Test_reason)
 let testAttributes =
   ReactDOMRe.createDOMElementVariadic "div"
     ~props:(ReactDOMRe.domProps ~translate:(("yes")

@@ -104,15 +104,15 @@ let lowerWithChildrenComplex =
 
 let nestedElement = <Foo.Bar a=1 b="1" />;
 
-/* let t = <FancyButton ref=buttonRef> <div /> </FancyButton>; */
+let t = <FancyButton ref=buttonRef> <div /> </FancyButton>;
 
-/* let t = <button ref className="FancyButton"> children </button>; */
+let t = <button ref className="FancyButton"> children </button>;
 
-/* [@react.component]
+[@react.component]
 let make =
-  React.forwardRef((~children, ~ref) => {
-    <button ref className="FancyButton"> children </button>
-  }); */
+  React.forwardRef((~children, ~buttonRef) => {
+    <button ref=buttonRef className="FancyButton"> children </button>
+  });
 
 let testAttributes =
   <div translate="yes">
