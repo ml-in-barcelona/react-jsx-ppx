@@ -44,16 +44,20 @@ module Memo = {
     });
 };
 
-/* module MemoCustomCompareProps = {
+module FloatCdf = {
   [@react.component]
+  let make = (~value: string) => {
+    <div>
+      <span> {value |> React.string} </span>
+    </div>;
+  };
+
   let make =
-    React.memo(
-      (~a) => {
-        <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>
-      },
-      (prevPros, nextProps) => false,
+    React.memoCustomCompareProps(make, (next, current) =>
+      next##value == current##value
     );
-}; */
+};
+
 
 let fragment = foo => [@bla] <> foo </>;
 
@@ -136,7 +140,7 @@ let make = (~name="joe") => {
   <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
 };
 
-/* module App = {
+module App = {
   [@react.component]
   let make = () => {
     <html>
@@ -147,13 +151,13 @@ let make = (~name="joe") => {
       </body>
     </html>;
   };
-}; */
+};
 
 /* It shoudn't remove this :/ */
 let () = Module.fn();
 let l = 33;
 
-/* module Page = {
+module Page = {
   [@react.component]
   let make = (~children, ~moreProps) => {
     <html>
@@ -166,17 +170,10 @@ let l = 33;
       </body>
     </html>;
   };
-}; */
+};
 
 let upperWithChildren =
   <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;
-
-/* module Container = {
-  [@react.component]
-  let make = (~children) => {
-    <div> children </div>;
-  };
-}; */
 
 let lower_child_static = <div> <span /> </div>;
 let lower_child_ident = <div> lolaspa </div>;
@@ -197,22 +194,22 @@ let upper_child_ident = <Div> lola </Div>;
 
 <p> {React.string(greeting)} </p>;
 
-/* module External = {
+module External = {
   [@react.component] [@otherAttribute "bla"]
   external component: (~a: int, ~b: string) => React.element =
     {|require("my-react-library").MyReactComponent|};
-}; */
+};
 
-/* module type X_int = {let x: int;}; */
+module type X_int = {let x: int;};
 
-/* module Func = (M: X_int) => {
+module Func = (M: X_int) => {
   let x = M.x + 1;
   [@react.component]
   let make = (~a, ~b, _) => {
     print_endline("This function should be named `Test$Func`", M.x);
     <div />;
   };
-}; */
+};
 
 let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
 
