@@ -1,9 +1,25 @@
+(* module OCaml_Location = Location *)
 open Ppxlib
-open Asttypes
-open Parsetree
-open Longident
-module Builder = Ast_builder.Default
-module Helper = Ast_helper
+module Helper = Ppxlib.Ast_helper
+
+module Builder = struct
+  (* Ast_builder.Default sets attributes are always set to the empty list.
+     This wrapper re-exports all used fn with attributes arg. *)
+
+  include Ast_builder.Default
+
+  let with_attrs e attrs =
+    match e.pexp_attributes with
+    | [] -> { e with pexp_attributes = attrs }
+    | _ -> e
+
+  let pexp_apply ~loc ?(attrs = []) e args =
+    with_attrs (Ast_builder.Default.pexp_apply ~loc e args) attrs
+
+  let value_binding ~loc ~pat ~expr ~attrs =
+    let vb = Ast_builder.Default.value_binding ~loc ~pat ~expr in
+    match attrs with [] -> vb | pvb_attributes -> { vb with pvb_attributes }
+end
 
 let rec find_opt p = function
   | [] -> None
@@ -111,10 +127,7 @@ let extractChildren ?(removeLastPositionUnit = false) ~loc propsAndChildren =
 let unerasableIgnore loc =
   { attr_name = { loc; txt = "warning" }
   ; attr_payload =
-      PStr
-        [ Helper.Str.eval
-            (Builder.pexp_constant (Pconst_string ("-16", Location.none, None)))
-        ]
+      PStr [ Builder.pstr_eval ~loc (constantString ~loc "-16") [] ]
   ; attr_loc = loc
   }
 
@@ -164,7 +177,7 @@ let getPropsNameValue _acc (loc, exp) =
       raise
         (Invalid_argument
            ("react.component only accepts props as an option, given: "
-          ^ Longident.last txt))
+          ^ Longident.last_exn txt))
   [@@raises Invalid_argument]
 
 (* Lookup the `props` record or string as part of [@react.component] and store the name for use when rewriting *)
@@ -201,7 +214,8 @@ let pluckLabelDefaultLocType (label, default, _, _, loc, type_) =
 let filenameFromLoc (pstr_loc : Location.t) =
   let fileName =
     match pstr_loc.loc_start.pos_fname with
-    | "" -> !Location.input_name
+    (* | "" -> !OCaml_Location.input_name *)
+    | "" -> "N/A"
     | fileName -> fileName
   in
   let fileName =
@@ -236,15 +250,11 @@ let rec recursivelyMakeNamedArgsForExternal list args =
   match list with
   | (label, default, loc, interiorType) :: tl ->
       recursivelyMakeNamedArgsForExternal tl
-        (Helper.Typ.arrow ~loc label
+        (Builder.ptyp_arrow ~loc label
            (match (label, interiorType, default) with
            (* ~foo=1 *)
            | label, None, Some _ ->
-               { ptyp_desc = Ptyp_var (safeTypeFromValue label)
-               ; ptyp_loc = loc
-               ; ptyp_loc_stack = []
-               ; ptyp_attributes = []
-               }
+               Builder.ptyp_var ~loc (safeTypeFromValue label)
            (* ~foo: int=1 *)
            | _label, Some type_, Some _ -> type_
            (* ~foo: option(int)=? *)
@@ -268,18 +278,9 @@ let rec recursivelyMakeNamedArgsForExternal list args =
                type_
            (* ~foo=? *)
            | label, None, _ when isOptional label ->
-               { ptyp_desc = Ptyp_var (safeTypeFromValue label)
-               ; ptyp_loc = loc
-               ; ptyp_loc_stack = []
-               ; ptyp_attributes = []
-               }
+               Builder.ptyp_var ~loc (safeTypeFromValue label)
            (* ~foo *)
-           | label, None, _ ->
-               { ptyp_desc = Ptyp_var (safeTypeFromValue label)
-               ; ptyp_loc_stack = []
-               ; ptyp_loc = loc
-               ; ptyp_attributes = []
-               }
+           | label, None, _ -> Builder.ptyp_var ~loc (safeTypeFromValue label)
            | _label, Some type_, _ -> type_)
            args)
   | [] -> args
@@ -288,16 +289,15 @@ let rec recursivelyMakeNamedArgsForExternal list args =
 (* Build an AST node for the [@bs.obj] representing props for a component *)
 let makePropsValue fnName loc namedArgListWithKeyAndRef propsType =
   let propsName = fnName ^ "Props" in
+  let lastFn =
+    Builder.ptyp_arrow ~loc nolabel
+      (Builder.ptyp_constr ~loc { txt = Lident "unit"; loc } [])
+      propsType
+  in
+
   { pval_name = { txt = propsName; loc }
   ; pval_type =
-      recursivelyMakeNamedArgsForExternal namedArgListWithKeyAndRef
-        (Helper.Typ.arrow ~loc nolabel
-           { ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; loc }, [])
-           ; ptyp_loc = loc
-           ; ptyp_loc_stack = []
-           ; ptyp_attributes = []
-           }
-           propsType)
+      recursivelyMakeNamedArgsForExternal namedArgListWithKeyAndRef lastFn
   ; pval_prim = [ "" ]
   ; pval_attributes =
       [ { attr_name = { txt = "bs.obj"; loc }
@@ -311,12 +311,12 @@ let makePropsValue fnName loc namedArgListWithKeyAndRef propsType =
 
 (* Build an AST node representing an `external` with the definition of the [@bs.obj] *)
 let makePropsExternal fnName loc namedArgListWithKeyAndRef propsType =
-  { pstr_loc = loc
-  ; pstr_desc =
-      Pstr_primitive
-        (makePropsValue fnName loc namedArgListWithKeyAndRef propsType)
-  }
-  [@@raises Invalid_argument]
+  Builder.pstr_primitive ~loc
+    (makePropsValue fnName loc namedArgListWithKeyAndRef propsType)
+
+let makePropsExternal fnName loc namedArgListWithKeyAndRef propsType =
+  Builder.pstr_primitive ~loc
+    (makePropsValue fnName loc namedArgListWithKeyAndRef propsType)
 
 (* Build an AST node for the signature of the `external` definition *)
 let makePropsExternalSig fnName loc namedArgListWithKeyAndRef propsType =
@@ -342,16 +342,12 @@ let makeObjectField loc (str, attrs, type_) =
 
 (* Build an AST node representing a "closed" object representing a component's props *)
 let makePropsType ~loc namedTypeList =
-  Helper.Typ.mk ~loc
-    (Ptyp_constr
-       ( { txt = Ldot (Lident "Js", "t"); loc }
-       , [ { ptyp_desc =
-               Ptyp_object (List.map (makeObjectField loc) namedTypeList, Closed)
-           ; ptyp_loc = loc
-           ; ptyp_loc_stack = []
-           ; ptyp_attributes = []
-           }
-         ] ))
+  Builder.ptyp_constr ~loc
+    { txt = Lident "Js.t"; loc }
+    [ Builder.ptyp_object ~loc
+        (List.map (makeObjectField loc) namedTypeList)
+        Closed
+    ]
 
 (* Builds an AST node for the entire `external` definition of props *)
 let makeExternalDecl fnName loc namedArgListWithKeyAndRef namedTypeList =
@@ -421,25 +417,25 @@ let rewritter =
                "JSX name can't be the result of function applications")
     in
     let props =
-      Helper.Exp.apply ~attrs ~loc
-        (Helper.Exp.ident ~loc { loc; txt = propsIdent })
+      Builder.pexp_apply ~attrs ~loc
+        (Builder.pexp_ident ~loc { loc; txt = propsIdent })
         args
     in
     (* handle key, ref, children *)
     (* React.createElement(Component.make, props, ...children) *)
     match !childrenArg with
     | None ->
-        Helper.Exp.apply ~loc ~attrs
-          (Helper.Exp.ident ~loc
+        Builder.pexp_apply ~loc ~attrs
+          (Builder.pexp_ident ~loc
              { loc; txt = Ldot (Lident "React", "createElement") })
-          [ (nolabel, Helper.Exp.ident ~loc { txt = ident; loc })
+          [ (nolabel, Builder.pexp_ident ~loc { txt = ident; loc })
           ; (nolabel, props)
           ]
     | Some children ->
-        Helper.Exp.apply ~loc ~attrs
-          (Helper.Exp.ident ~loc
+        Builder.pexp_apply ~loc ~attrs
+          (Builder.pexp_ident ~loc
              { loc; txt = Ldot (Lident "React", "createElementVariadic") })
-          [ (nolabel, Helper.Exp.ident ~loc { txt = ident; loc })
+          [ (nolabel, Builder.pexp_ident ~loc { txt = ident; loc })
           ; (nolabel, props)
           ; (nolabel, children)
           ]
@@ -476,8 +472,8 @@ let rewritter =
           ]
       | nonEmptyProps ->
           let propsCall =
-            Helper.Exp.apply ~loc
-              (Helper.Exp.ident ~loc
+            Builder.pexp_apply ~loc
+              (Builder.pexp_ident ~loc
                  { loc; txt = Ldot (Lident "ReactDOMRe", "domProps") })
               (nonEmptyProps
               |> List.map (fun (label, expression) ->
@@ -491,11 +487,11 @@ let rewritter =
             (nolabel, childrenExpr)
           ]
     in
-    Helper.Exp.apply
+    Builder.pexp_apply
       ~loc (* throw away the [@JSX] attribute and keep the others, if any *)
       ~attrs
       (* ReactDOMRe.createElement *)
-      (Helper.Exp.ident ~loc
+      (Builder.pexp_ident ~loc
          { loc; txt = Ldot (Lident "ReactDOMRe", createElementCall) })
       args
     [@@raises Invalid_argument]
@@ -526,9 +522,9 @@ let rewritter =
                   let currentType =
                     match ptyp_desc with
                     | Ptyp_constr ({ txt }, []) ->
-                        String.concat "." (Longident.flatten txt)
+                        String.concat "." (Longident.flatten_exn txt)
                     | Ptyp_constr ({ txt }, _innerTypeArgs) ->
-                        String.concat "." (Longident.flatten txt) ^ "(...)"
+                        String.concat "." (Longident.flatten_exn txt) ^ "(...)"
                     | _ -> "..."
                   in
                   Location.prerr_warning pattern.ppat_loc
@@ -638,7 +634,7 @@ let rewritter =
     | name when isOptional name ->
         ( getLabel name
         , []
-        , Helper.Typ.constr ~loc { loc; txt = optionIdent } [ type_ ] )
+        , Builder.ptyp_constr ~loc { loc; txt = optionIdent } [ type_ ] )
         :: types
     | _ -> types
   in
@@ -759,11 +755,12 @@ let rewritter =
             let modifiedBinding binding =
               let hasApplication = ref false in
               let wrapExpressionWithBinding expressionFn expression =
-                Helper.Vb.mk ~loc:bindingLoc
+                Builder.value_binding ~loc:bindingLoc
                   ~attrs:(List.filter otherAttrsPure binding.pvb_attributes)
-                  (Helper.Pat.var ~loc:bindingPatLoc
-                     { loc = bindingPatLoc; txt = fnName })
-                  (expressionFn expression)
+                  ~pat:
+                    (Builder.ppat_var ~loc:bindingPatLoc
+                       { loc = bindingPatLoc; txt = fnName })
+                  ~expr:(expressionFn expression)
               in
               let expression = binding.pvb_expr in
               let unerasableIgnoreExp exp =
@@ -849,7 +846,8 @@ let rewritter =
                       spelunkForFunExpression internalExpression
                     in
                     ( (fun exp ->
-                        Helper.Exp.apply wrapperExpression [ (nolabel, exp) ])
+                        Builder.pexp_apply ~loc:exp.pexp_loc wrapperExpression
+                          [ (nolabel, exp) ])
                     , hasUnit
                     , exp )
                 | { pexp_desc =
@@ -891,7 +889,7 @@ let rewritter =
             let namedArgListWithKeyAndRef =
               ( optional "key"
               , None
-              , Pat.var { txt = "key"; loc = emptyLoc }
+              , Builder.ppat_var ~loc:emptyLoc { txt = "key"; loc = emptyLoc }
               , "key"
               , emptyLoc
               , Some (keyType emptyLoc) )
@@ -902,7 +900,8 @@ let rewritter =
               | Some _ ->
                   ( optional "ref"
                   , None
-                  , Pat.var { txt = "key"; loc = emptyLoc }
+                  , Builder.ppat_var ~loc:emptyLoc
+                      { txt = "key"; loc = emptyLoc }
                   , "ref"
                   , emptyLoc
                   , None )
@@ -915,7 +914,7 @@ let rewritter =
                   namedArgList
                   @ [ ( nolabel
                       , None
-                      , Pat.var { txt; loc = emptyLoc }
+                      , Builder.ppat_var ~loc:emptyLoc { txt; loc = emptyLoc }
                       , txt
                       , emptyLoc
                       , None )
@@ -931,15 +930,15 @@ let rewritter =
               in
               ( label
               , match labelString with
-                | "" -> Helper.Exp.ident ~loc { txt = Lident alias; loc }
+                | "" -> Builder.pexp_ident ~loc { txt = Lident alias; loc }
                 | labelString ->
-                    Helper.Exp.apply ~loc
-                      (Helper.Exp.ident ~loc { txt = Lident "##"; loc })
+                    Builder.pexp_apply ~loc
+                      (Builder.pexp_ident ~loc { txt = Lident "##"; loc })
                       [ ( nolabel
-                        , Helper.Exp.ident ~loc
+                        , Builder.pexp_ident ~loc
                             { txt = Lident props.propsName; loc } )
                       ; ( nolabel
-                        , Helper.Exp.ident ~loc
+                        , Builder.pexp_ident ~loc
                             { txt = Lident labelString; loc } )
                       ] )
             in
@@ -953,13 +952,15 @@ let rewritter =
               List.map pluckArg namedArgListWithKeyAndRefForNew
               @
               if hasUnit then
-                [ (Nolabel, Helper.Exp.construct { loc; txt = Lident "()" } None)
+                [ ( nolabel
+                  , Builder.pexp_construct ~loc { loc; txt = Lident "()" } None
+                  )
                 ]
               else []
             in
             let innerExpression =
-              Helper.Exp.apply
-                (Helper.Exp.ident
+              Builder.pexp_apply ~loc
+                (Builder.pexp_ident ~loc
                    { loc
                    ; txt =
                        Lident
@@ -987,7 +988,7 @@ let rewritter =
               | None -> innerExpression
             in
             let fullExpression =
-              Helper.Exp.fun_ nolabel None
+              Builder.pexp_fun ~loc nolabel None
                 { ppat_desc =
                     Ppat_constraint
                       ( makePropsName ~loc:emptyLoc props.propsName
@@ -1002,25 +1003,29 @@ let rewritter =
               match fullModuleName with
               | "" -> fullExpression
               | txt ->
-                  Helper.Exp.let_ Nonrecursive
-                    [ Helper.Vb.mk ~loc:emptyLoc
-                        (Helper.Pat.var ~loc:emptyLoc { loc = emptyLoc; txt })
-                        fullExpression
+                  Builder.pexp_let ~loc Nonrecursive
+                    [ Builder.value_binding ~loc:emptyLoc
+                        ~pat:
+                          (Builder.ppat_var ~loc:emptyLoc
+                             { loc = emptyLoc; txt })
+                        ~expr:fullExpression ~attrs:[]
                     ]
-                    (Helper.Exp.ident ~loc:emptyLoc
+                    (Builder.pexp_ident ~loc:emptyLoc
                        { loc = emptyLoc; txt = Lident txt })
             in
             let bindings, newBinding =
               match recFlag with
               | Recursive ->
                   ( [ bindingWrapper
-                        (Helper.Exp.let_ ~loc:emptyLoc Recursive
+                        (Builder.pexp_let ~loc:emptyLoc Recursive
                            [ makeNewBinding binding expression internalFnName
-                           ; Vb.mk
-                               (Pat.var { loc = emptyLoc; txt = fnName })
-                               fullExpression
+                           ; Builder.value_binding ~loc:emptyLoc
+                               ~pat:
+                                 (Builder.ppat_var ~loc:emptyLoc
+                                    { loc = emptyLoc; txt = fnName })
+                               ~expr:fullExpression ~attrs:[]
                            ]
-                           (Helper.Exp.ident
+                           (Builder.pexp_ident ~loc
                               { loc = emptyLoc; txt = Lident fnName }))
                     ]
                   , None )
@@ -1233,7 +1238,7 @@ let rewritter =
           | [], _ -> mapper#expression expression
           | _, nonJSXAttributes ->
               let fragment =
-                Helper.Exp.ident ~loc
+                Builder.pexp_ident ~loc
                   { loc; txt = Ldot (Lident "ReasonReact", "fragment") }
               in
               let childrenExpr =
@@ -1246,26 +1251,26 @@ let rewritter =
                   (nolabel, childrenExpr)
                 ]
               in
-              Helper.Exp.apply
+              Builder.pexp_apply
                 ~loc
                   (* throw away the [@JSX] attribute and keep the others, if any *)
                 ~attrs:nonJSXAttributes
                 (* ReactDOMRe.createElement *)
-                (Helper.Exp.ident ~loc
+                (Builder.pexp_ident ~loc
                    { loc; txt = Ldot (Lident "ReactDOMRe", "createElement") })
                 args)
       (* Delegate to the default mapper, a deep identity traversal *)
       | e -> mapper#expression e
     [@@raises Invalid_argument]
 
-    (* method! module_binding module_binding =
-         (match module_binding.pmb_name.txt with
-         | None -> ()
-         | Some name -> nestedModules := name :: !nestedModules);
-         let mapped = default_mapper.module_binding mapper module_binding in
-         let _ = nestedModules := List.tl !nestedModules in
-         mapped
-       [@@raises Failure] *)
+    method! module_binding module_binding =
+      (match module_binding.pmb_name.txt with
+      | None -> ()
+      | Some name -> nestedModules := name :: !nestedModules);
+      let mapped = mapper#module_binding module_binding in
+      let _ = nestedModules := List.tl !nestedModules in
+      mapped
+    [@@raises Failure]
   end
 
 let () =
