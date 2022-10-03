@@ -1,0 +1,20 @@
+let lower = ReactDOMRe.createDOMElementVariadic "div" [||]
+let upper = React.createElement Input.make (Input.makeProps ())
+let lower_with_empty_attr =
+  ReactDOMRe.createDOMElementVariadic "div"
+    ~props:(ReactDOMRe.domProps ~className:(("")[@reason.raw_literal ""]) ())
+    [||]
+let lower_opt_attr =
+  ReactDOMRe.createDOMElementVariadic "div"
+    ~props:(ReactDOMRe.domProps ?tabIndex ()) [||]
+let lower_inner_html =
+  ReactDOMRe.createDOMElementVariadic "div"
+    ~props:(ReactDOMRe.domProps
+              ~dangerouslySetInnerHTML:([%bs.obj { __html = text }]) ()) 
+    [||]
+let lower_with_style =
+  ReactDOMRe.createDOMElementVariadic "div"
+    ~props:(ReactDOMRe.domProps
+              ~style:((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
+                         [@reason.raw_literal "gainsboro"]) ())
+              [@reason.preserve_braces ]) ()) [||]

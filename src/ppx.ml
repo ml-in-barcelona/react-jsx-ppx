@@ -1,4 +1,5 @@
-(* module OCaml_Location = Location *)
+[@@@warning "-26"]
+
 open Ppxlib
 module Helper = Ppxlib.Ast_helper
 
@@ -15,6 +16,10 @@ module Builder = struct
   let value_binding ~loc ~pat ~expr ~attrs =
     let vb = Ast_builder.Default.value_binding ~loc ~pat ~expr in
     { vb with pvb_attributes = attrs }
+
+  let value_description ~loc ~name ~type_ ~prim ~attrs =
+    let vd = Ast_builder.Default.value_description ~loc ~name ~type_ ~prim in
+    { vd with pval_attributes = attrs }
 end
 
 let rec find_opt p = function
@@ -243,6 +248,7 @@ let makeModuleName fileName nestedModules fnName =
 
 (* Build an AST node representing all named args for the `external` definition for a component's props *)
 let rec recursivelyMakeNamedArgsForExternal list args =
+  print_endline "let makePropsValue fnName";
   match list with
   | (label, default, loc, interiorType) :: tl ->
       recursivelyMakeNamedArgsForExternal tl
@@ -250,7 +256,11 @@ let rec recursivelyMakeNamedArgsForExternal list args =
            (match (label, interiorType, default) with
            (* ~foo=1 *)
            | label, None, Some _ ->
-               Builder.ptyp_var ~loc (safeTypeFromValue label)
+               { ptyp_desc = Ptyp_var (safeTypeFromValue label)
+               ; ptyp_loc = loc
+               ; ptyp_loc_stack = []
+               ; ptyp_attributes = []
+               }
            (* ~foo: int=1 *)
            | _label, Some type_, Some _ -> type_
            (* ~foo: option(int)=? *)
@@ -274,35 +284,36 @@ let rec recursivelyMakeNamedArgsForExternal list args =
                type_
            (* ~foo=? *)
            | label, None, _ when isOptional label ->
-               Builder.ptyp_var ~loc (safeTypeFromValue label)
+               { ptyp_desc = Ptyp_var (safeTypeFromValue label)
+               ; ptyp_loc = loc
+               ; ptyp_loc_stack = []
+               ; ptyp_attributes = []
+               }
            (* ~foo *)
-           | label, None, _ -> Builder.ptyp_var ~loc (safeTypeFromValue label)
+           | label, None, _ ->
+               { ptyp_desc = Ptyp_var (safeTypeFromValue label)
+               ; ptyp_loc_stack = []
+               ; ptyp_loc = loc
+               ; ptyp_attributes = []
+               }
            | _label, Some type_, _ -> type_)
            args)
   | [] -> args
-  [@@raises Invalid_argument]
 
 (* Build an AST node for the [@bs.obj] representing props for a component *)
 let makePropsValue fnName loc namedArgListWithKeyAndRef propsType =
-  let propsName = fnName ^ "Props" in
-  let lastFn =
-    Builder.ptyp_arrow ~loc nolabel
-      (Builder.ptyp_constr ~loc { txt = Lident "unit"; loc } [])
-      propsType
+  let propsName = { txt = fnName ^ "Props"; loc } in
+  let type_ =
+    recursivelyMakeNamedArgsForExternal namedArgListWithKeyAndRef
+      (Builder.ptyp_arrow ~loc nolabel
+         (Builder.ptyp_constr ~loc { txt = Lident "unit"; loc } [])
+         propsType)
   in
-
-  { pval_name = { txt = propsName; loc }
-  ; pval_type =
-      recursivelyMakeNamedArgsForExternal namedArgListWithKeyAndRef lastFn
-  ; pval_prim = [ "" ]
-  ; pval_attributes =
-      [ { attr_name = { txt = "bs.obj"; loc }
-        ; attr_payload = PStr []
-        ; attr_loc = loc
-        }
-      ]
-  ; pval_loc = loc
-  }
+  let bsobj =
+    Builder.attribute ~loc ~name:{ txt = "bs.obj"; loc } ~payload:(PStr [])
+  in
+  Builder.value_description ~loc ~name:propsName ~type_ ~prim:[ "" ]
+    ~attrs:[ bsobj ]
   [@@raises Invalid_argument]
 
 (* Build an AST node representing an `external` with the definition of the [@bs.obj] *)
@@ -350,8 +361,6 @@ let makeExternalDecl fnName loc namedArgListWithKeyAndRef namedTypeList =
 
 (* TODO: some line number might still be wrong *)
 let rewritter =
-  let jsxVersion = ref None in
-
   let transformUppercaseCall3
       ~caller
       modulePath
@@ -489,7 +498,7 @@ let rewritter =
     [@@raises Invalid_argument]
   in
 
-  let rec recursivelyTransformNamedArgsForMake mapper expr list =
+  let recursivelyTransformNamedArgsForMake mapper expr list =
     let expr = mapper#expression expr in
     match expr.pexp_desc with
     (* TODO: make this show up with a loc. *)
@@ -503,46 +512,46 @@ let rewritter =
           (Invalid_argument
              "Ref cannot be passed as a normal prop. Please use `forwardRef` \
               API instead.")
-    | Pexp_fun (arg, default, pattern, expression)
-      when isOptional arg || isLabelled arg ->
-        let () =
-          match (isOptional arg, pattern, default) with
-          | true, { ppat_desc = Ppat_constraint (_, { ptyp_desc }) }, None -> (
-              match ptyp_desc with
-              | Ptyp_constr ({ txt = Lident "option" }, [ _ ]) -> ()
-              | _ ->
-                  let currentType =
-                    match ptyp_desc with
-                    | Ptyp_constr ({ txt }, []) ->
-                        String.concat "." (Longident.flatten_exn txt)
-                    | Ptyp_constr ({ txt }, _innerTypeArgs) ->
-                        String.concat "." (Longident.flatten_exn txt) ^ "(...)"
-                    | _ -> "..."
-                  in
-                  raise
-                    (Invalid_argument
-                       (Printf.sprintf
-                          "ReasonReact: optional argument annotations must \
-                           have explicit `option`. Did you mean \
-                           `option(%s)=?`?"
-                          currentType)))
-          | _ -> ()
-        in
-        let alias =
-          match pattern with
-          | { ppat_desc = Ppat_alias (_, { txt; _ }) | Ppat_var { txt; _ } } ->
-              txt
-          | { ppat_desc = Ppat_any } -> "_"
-          | _ -> getLabel arg
-        in
-        let type_ =
-          match pattern with
-          | { ppat_desc = Ppat_constraint (_, type_) } -> Some type_
-          | _ -> None
-        in
+    (* | Pexp_fun (arg, default, pattern, expression)
+       when isOptional arg || isLabelled arg ->
+         let () =
+           match (isOptional arg, pattern, default) with
+           | true, { ppat_desc = Ppat_constraint (_, { ptyp_desc }) }, None -> (
+               match ptyp_desc with
+               | Ptyp_constr ({ txt = Lident "option" }, [ _ ]) -> ()
+               | _ ->
+                   let currentType =
+                     match ptyp_desc with
+                     | Ptyp_constr ({ txt }, []) ->
+                         String.concat "." (Longident.flatten_exn txt)
+                     | Ptyp_constr ({ txt }, _innerTypeArgs) ->
+                         String.concat "." (Longident.flatten_exn txt) ^ "(...)"
+                     | _ -> "..."
+                   in
+                   raise
+                     (Invalid_argument
+                        (Printf.sprintf
+                           "ReasonReact: optional argument annotations must \
+                            have explicit `option`. Did you mean \
+                            `option(%s)=?`?"
+                           currentType)))
+           | _ -> ()
+         in
+         let alias =
+           match pattern with
+           | { ppat_desc = Ppat_alias (_, { txt; _ }) | Ppat_var { txt; _ } } ->
+               txt
+           | { ppat_desc = Ppat_any } -> "_"
+           | _ -> getLabel arg
+         in
+         let type_ =
+           match pattern with
+           | { ppat_desc = Ppat_constraint (_, type_) } -> Some type_
+           | _ -> None
+         in
 
-        recursivelyTransformNamedArgsForMake mapper expression
-          ((arg, default, pattern, alias, pattern.ppat_loc, type_) :: list)
+         recursivelyTransformNamedArgsForMake mapper expression
+           ((arg, default, pattern, alias, pattern.ppat_loc, type_) :: list) *)
     | Pexp_fun
         ( Nolabel
         , _
@@ -1145,32 +1154,20 @@ let rewritter =
               (Invalid_argument
                  "JSX: `createElement` should be preceeded by a module name.")
         (* Foo.createElement(~prop1=foo, ~prop2=bar, ~children=[], ()) *)
-        | { loc; txt = Ldot (modulePath, ("createElement" | "make")) } -> (
-            match !jsxVersion with
-            | None | Some 3 ->
-                transformUppercaseCall3 ~caller:"make" modulePath mapper loc
-                  attrs callExpression callArguments
-            | Some _ ->
-                raise (Invalid_argument "JSX: the JSX version must be  3"))
+        | { loc; txt = Ldot (modulePath, ("createElement" | "make")) } ->
+            transformUppercaseCall3 ~caller:"make" modulePath mapper loc attrs
+              callExpression callArguments
         (* div(~prop1=foo, ~prop2=bar, ~children=[bla], ()) *)
         (* turn that into
            ReactDOMRe.createElement(~props=ReactDOMRe.props(~props1=foo, ~props2=bar, ()), [|bla|]) *)
-        | { loc; txt = Lident id } -> (
-            match !jsxVersion with
-            | None | Some 3 ->
-                transformLowercaseCall3 mapper loc attrs callArguments id
-            | Some _ ->
-                raise (Invalid_argument "JSX: the JSX version must be 3"))
+        | { loc; txt = Lident id } ->
+            transformLowercaseCall3 mapper loc attrs callArguments id
         (* Foo.bar(~prop1=foo, ~prop2=bar, ~children=[], ()) *)
         (* Not only "createElement" or "make". See
            https://github.com/reasonml/reason/pull/2541 *)
-        | { loc; txt = Ldot (modulePath, anythingNotCreateElementOrMake) } -> (
-            match !jsxVersion with
-            | None | Some 3 ->
-                transformUppercaseCall3 ~caller:anythingNotCreateElementOrMake
-                  modulePath mapper loc attrs callExpression callArguments
-            | Some _ ->
-                raise (Invalid_argument "JSX: the JSX version must be  3"))
+        | { loc; txt = Ldot (modulePath, anythingNotCreateElementOrMake) } ->
+            transformUppercaseCall3 ~caller:anythingNotCreateElementOrMake
+              modulePath mapper loc attrs callExpression callArguments
         | { txt = Lapply _ } ->
             (* don't think there's ever a case where this is reached *)
             raise
@@ -1208,7 +1205,7 @@ let rewritter =
           in
           match (jsxAttribute, nonJSXAttributes) with
           (* no JSX attribute *)
-          | [], _ -> mapper#expression expression
+          | [], _ -> expression
           | _, nonJSXAttributes ->
               transformJsxCall mapper callExpression callArguments
                 nonJSXAttributes)
@@ -1227,7 +1224,7 @@ let rewritter =
           in
           match (jsxAttribute, nonJSXAttributes) with
           (* no JSX attribute *)
-          | [], _ -> mapper#expression expression
+          | [], _ -> expression
           | _, nonJSXAttributes ->
               let fragment =
                 Builder.pexp_ident ~loc
@@ -1251,8 +1248,8 @@ let rewritter =
                 (Builder.pexp_ident ~loc
                    { loc; txt = Ldot (Lident "ReactDOMRe", "createElement") })
                 args)
-      (* Delegate to the default mapper, a deep identity traversal *)
-      | e -> mapper#expression e
+      (* Delegate to the default mapper, a identity *)
+      | e -> e
     [@@raises Invalid_argument]
 
     method! module_binding module_binding =

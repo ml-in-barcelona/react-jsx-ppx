@@ -3,4 +3,4 @@
  (public_name demo)
  (package react-jsx-ppx)
  (preprocess
-  (pps react-jsx-ppx.ppx)))
+  (pps react_jsx_ppx)))

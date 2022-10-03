@@ -1,11 +1,12 @@
 let lower = <div />;
+let upper = <Input />;
 let lower_with_empty_attr = <div className="" />;
+let lower_opt_attr = <div ?tabIndex />;
+let lower_inner_html = <div dangerouslySetInnerHTML={"__html": text} />;
 let lower_with_style =
   <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
-let lower_inner_html = <div dangerouslySetInnerHTML={"__html": text} />;
-let lower_opt_attr = <div ?tabIndex />;
-let upper = <Input />;
 
+/*
 module React_component_without_props = {
   [@react.component]
   let make = (~lola, ~cosis) => {
@@ -16,6 +17,7 @@ module React_component_without_props = {
 };
 
 let upper = <React_component_without_props lola="flores" />;
+
 
 // Components
 
@@ -208,3 +210,4 @@ module Func = (M: X_int) => {
 let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
 
 <Link url="/hello" txt="hiya" />;
+*/
