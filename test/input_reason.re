@@ -35,7 +35,6 @@ let make = (~name="") => {
   </>;
 };
 
-
 module Memo = {
   [@react.component]
   let make =
@@ -47,9 +46,7 @@ module Memo = {
 module FloatCdf = {
   [@react.component]
   let make = (~value: string) => {
-    <div>
-      <span> {value |> React.string} </span>
-    </div>;
+    <div> <span> {value |> React.string} </span> </div>;
   };
 
   let make =
@@ -57,7 +54,6 @@ module FloatCdf = {
       next##value == current##value
     );
 };
-
 
 let fragment = foo => [@bla] <> foo </>;
 

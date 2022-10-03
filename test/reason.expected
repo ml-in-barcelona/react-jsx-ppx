@@ -109,6 +109,28 @@ module Memo =
            make ~a:(Props ## a) in
          Test_reason$Memo)
   end
+module FloatCdf =
+  struct
+    external makeProps :
+      value:string -> ?key:string -> unit -> < value: string   >  Js.t = ""
+    [@@bs.obj ]
+    let make =
+      ((fun ~value:(value : string) ->
+          ((div
+              ~children:[((span
+                             ~children:[((value |> React.string)
+                                       [@reason.preserve_braces ])] ())
+                        [@JSX ])] ())
+          [@reason.preserve_braces ][@JSX ]))
+      [@warning "-16"])
+    let make =
+      let Test_reason$FloatCdf (Props : < value: string   >  Js.t) =
+        make ~value:(Props ## value) in
+      Test_reason$FloatCdf
+    let make =
+      React.memoCustomCompareProps make
+        (fun next -> fun current -> (next ## value) = (current ## value))
+  end
 let fragment foo = (([foo])[@bla ][@JSX ])
 let polyChildrenFragment foo bar = (([foo; bar])[@JSX ])
 let nestedFragment foo bar baz = (([foo; (([bar; baz])[@JSX ])])[@JSX ])
@@ -285,8 +307,87 @@ let make =
   let Test_reason (Props : < name: 'name option   >  Js.t) =
     make ?name:(Props ## name) in
   Test_reason
+module App =
+  struct
+    external makeProps : ?key:string -> unit -> <  >  Js.t = ""[@@bs.obj ]
+    let make () =
+      ((html
+          ~children:[((head
+                         ~children:[((title
+                                        ~children:[((React.string
+                                                       (("SSR React")
+                                                       [@reason.raw_literal
+                                                         "SSR React"]))
+                                                  [@reason.preserve_braces ])]
+                                        ())
+                                   [@JSX ])] ())
+                    [@JSX ]);
+                    ((body
+                        ~children:[((div
+                                       ~children:[((h1
+                                                      ~children:[((React.string
+                                                                    (("Wat")
+                                                                    [@reason.raw_literal
+                                                                    "Wat"]))
+                                                                [@reason.preserve_braces
+                                                                  ])] ())
+                                                 [@JSX ])] ())
+                                  [@JSX ]);
+                                  ((script ~src:(("/static/client.js")
+                                      [@reason.raw_literal
+                                        "/static/client.js"]) ~children:[] ())
+                                  [@JSX ])] ())
+                    [@JSX ])] ())
+      [@reason.preserve_braces ][@JSX ])
+    let make =
+      let Test_reason$App (Props : <  >  Js.t) = make () in Test_reason$App
+  end
 let () = Module.fn ()
 let l = 33
+module Page =
+  struct
+    external makeProps :
+      children:'children ->
+        moreProps:'moreProps ->
+          ?key:string ->
+            unit -> < children: 'children  ;moreProps: 'moreProps   >  Js.t =
+        ""[@@bs.obj ]
+    let make =
+      ((fun ~children ->
+          ((fun ~moreProps ->
+              ((html
+                  ~children:[((head
+                                 ~children:[((title
+                                                ~children:[((React.string
+                                                               ((("SSR React ")
+                                                                  [@reason.raw_literal
+                                                                    "SSR React "])
+                                                                  ^ moreProps))
+                                                          [@reason.preserve_braces
+                                                            ])] ())
+                                           [@JSX ])] ())
+                            [@JSX ]);
+                            ((body
+                                ~children:[((div ~id:(("root")
+                                               [@reason.raw_literal "root"])
+                                               ~children:[children] ())
+                                          [@JSX ]);
+                                          ((script
+                                              ~src:(("/static/client.js")
+                                              [@reason.raw_literal
+                                                "/static/client.js"])
+                                              ~children:[] ())
+                                          [@JSX ])] ())
+                            [@JSX ])] ())
+              [@reason.preserve_braces ][@JSX ]))
+          [@warning "-16"]))
+      [@warning "-16"])
+    let make =
+      let Test_reason$Page
+        (Props : < children: 'children  ;moreProps: 'moreProps   >  Js.t) =
+        make ~moreProps:(Props ## moreProps) ~children:(Props ## children) in
+      Test_reason$Page
+  end
 let upperWithChildren =
   React.createElement Page.make
     (Page.makeProps ~moreProps:(("hgalo")[@reason.raw_literal "hgalo"])
@@ -320,6 +421,44 @@ let upper_child_ident =
                     [|(("hello")[@reason.raw_literal "hello"])|]) ())
 ;;ReactDOMRe.createDOMElementVariadic "p"
     [|((React.string greeting)[@reason.preserve_braces ])|]
+module External =
+  struct
+    external componentProps :
+      a:int ->
+        b:string -> ?key:string -> unit -> < a: int  ;b: string   >  Js.t =
+        ""[@@bs.obj ]
+    external component :
+      (< a: int  ;b: string   >  Js.t, React.element) React.componentLike =
+        "require(\"my-react-library\").MyReactComponent"[@@otherAttribute
+                                                          (("bla")
+                                                            [@reason.raw_literal
+                                                              "bla"])]
+  end
+module type X_int  = sig val x : int end
+module Func(M:X_int) =
+  struct
+    let x = M.x + 1
+    external makeProps :
+      a:'a -> b:'b -> ?key:string -> unit -> < a: 'a  ;b: 'b   >  Js.t = ""
+    [@@bs.obj ]
+    let make =
+      ((fun ~a ->
+          ((fun ~b ->
+              fun _ ->
+                ((print_endline
+                    (("This function should be named `Test$Func`")
+                    [@reason.raw_literal
+                      "This function should be named `Test$Func`"]) M.x;
+                  ((div ~children:[] ())
+                  [@JSX ]))
+                [@reason.preserve_braces ]))
+          [@warning "-16"]))
+      [@warning "-16"])
+    let make =
+      let Test_reason$Func (Props : < a: 'a  ;b: 'b   >  Js.t) =
+        make ~b:(Props ## b) ~a:(Props ## a) () in
+      Test_reason$Func
+  end
 let div =
   ReactDOMRe.createElement ReasonReact.fragment
     [|(ReactDOMRe.createDOMElementVariadic "div"
