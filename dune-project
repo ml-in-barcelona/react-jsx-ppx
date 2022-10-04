@@ -20,7 +20,7 @@
  (synopsis "React JSX ppx migrated to ppxlib")
  (depends
   ;; General system dependencies
-  (dun (and (>= 2.9.0) (< 3.0.0)))
+  (dune (>= 2.9.0))
   (ocaml (and (>= 4.12.0) (< 5.0.0)))
 
   (ppxlib (= 0.27.0))
