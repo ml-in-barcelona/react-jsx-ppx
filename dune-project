@@ -11,7 +11,7 @@
 (source
  (github ml-in-barcelona/react-jsx-ppx))
 
-(generate_opam_files true)
+(generate_opam_files false)
 
 (implicit_transitive_deps false)
 
@@ -20,7 +20,7 @@
  (synopsis "React JSX ppx migrated to ppxlib")
  (depends
   ;; General system dependencies
-  (dune (and (>= 2) (< 4)))
+  (dune (>= 2.9))
   (ocaml (and (>= 4.12.0) (< 5.0.0)))
 
   (ppxlib (= 0.27.0))
