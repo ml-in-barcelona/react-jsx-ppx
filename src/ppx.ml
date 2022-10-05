@@ -351,7 +351,7 @@ let makeObjectField loc (str, attrs, type_) =
 (* Build an AST node representing a "closed" object representing a component's props *)
 let makePropsType ~loc namedTypeList =
   Builder.ptyp_constr ~loc
-    { txt = Lident "Js.t"; loc }
+    { txt = Ldot (Lident "Js", "t"); loc }
     [ Builder.ptyp_object ~loc
         (List.map (makeObjectField loc) namedTypeList)
         Closed
