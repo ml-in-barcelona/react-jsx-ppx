@@ -1253,7 +1253,7 @@ let rewritter =
           in
           match (jsxAttribute, nonJSXAttributes) with
           (* no JSX attribute *)
-          | [], _ -> expression
+          | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
               let fragment =
                 Builder.pexp_ident ~loc
