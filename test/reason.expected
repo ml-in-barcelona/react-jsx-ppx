@@ -18,22 +18,30 @@ let lower_with_style =
               ~style:((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
                          [@reason.raw_literal "gainsboro"]) ())
               [@reason.preserve_braces ]) ()) [||]
-let fragment foo = (([foo])[@bla ][@JSX ])
-let polyChildrenFragment foo bar = (([foo; bar])[@JSX ])
-let nestedFragment foo bar baz = (([foo; (([bar; baz])[@JSX ])])[@JSX ])
-let nestedFragmentWithlower foo = (([((div ~children:[foo] ())[@JSX ])])
-  [@JSX ])
+let fragment foo = ((ReactDOMRe.createElement ReasonReact.fragment [|foo|])
+  [@bla ])
+let polyChildrenFragment foo bar =
+  ReactDOMRe.createElement ReasonReact.fragment [|foo;bar|]
+let nestedFragment foo bar baz =
+  ReactDOMRe.createElement ReasonReact.fragment
+    [|foo;(ReactDOMRe.createElement ReasonReact.fragment [|bar;baz|])|]
+let nestedFragmentWithlower foo =
+  ReactDOMRe.createElement ReasonReact.fragment
+    [|(ReactDOMRe.createDOMElementVariadic "div" [|foo|])|]
 let upper = React.createElement Upper.make (Upper.makeProps ())
 let upperWithProp =
   React.createElement Upper.make (Upper.makeProps ~count ())
-let upperWithChild foo = ((Upper.createElement ~children:[foo] ())[@JSX ])
+let upperWithChild foo =
+  React.createElement Upper.make (Upper.makeProps ~children:foo ())
 let upperWithChildren foo bar =
-  ((Upper.createElement ~children:[foo; bar] ())[@JSX ])
+  React.createElementVariadic Upper.make
+    (Upper.makeProps ~children:React.null ()) [|foo;bar|]
 let lowerWithChildAndProps foo =
-  ((a ~tabIndex:1 ~href:(("https://example.com")
-      [@reason.raw_literal "https://example.com"]) ~children:[foo] ())
-  [@JSX ])
-let lowerWithChildren foo bar = ((lower ~children:[foo; bar] ())[@JSX ])
+  ReactDOMRe.createDOMElementVariadic "a"
+    ~props:(ReactDOMRe.domProps ~tabIndex:1 ~href:(("https://example.com")
+              [@reason.raw_literal "https://example.com"]) ()) [|foo|]
+let lowerWithChildren foo bar =
+  ReactDOMRe.createDOMElementVariadic "lower" [|foo;bar|]
 let nestedElement =
   React.createElement Foo.Bar.make
     (Foo.Bar.makeProps ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ())
@@ -68,14 +76,19 @@ let lowerWithChildrenComplex =
                                                               (List.map
                                                                  (fun e ->
                                                                     ((
-                                                                    li
+                                                                    ReactDOMRe.createDOMElementVariadic
+                                                                    "li"
+                                                                    ~props:(
+                                                                    ReactDOMRe.domProps
                                                                     ~key:((
                                                                     e.path)
                                                                     [@reason.preserve_braces
-                                                                    ])
-                                                                    ~children:
-                                                                    [((
-                                                                    a
+                                                                    ]) ())
+                                                                    [|(
+                                                                    ReactDOMRe.createDOMElementVariadic
+                                                                    "a"
+                                                                    ~props:(
+                                                                    ReactDOMRe.domProps
                                                                     ~href:((
                                                                     e.path)
                                                                     [@reason.preserve_braces
@@ -90,18 +103,14 @@ let lowerWithChildrenComplex =
                                                                     [@reason.preserve_braces
                                                                     ]))
                                                                     [@reason.preserve_braces
-                                                                    ])
-                                                                    ~children:
-                                                                    [((
+                                                                    ]) ())
+                                                                    [|((
                                                                     e.title
                                                                     |> s)
                                                                     [@reason.preserve_braces
-                                                                    ])] ())
-                                                                    [@JSX ])]
-                                                                    ())
+                                                                    ])|])|])
                                                                     [@reason.preserve_braces
-                                                                    ]
-                                                                    [@JSX ]))))
+                                                                    ]))))
                                                              |> React.list)
                                                          [@reason.preserve_braces
                                                            ])|])|])|])|]
@@ -110,18 +119,25 @@ external makeProps :
 [@@bs.obj ]
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
-      (([((div
-             ~children:[((React.string
-                            ((("First ")[@reason.raw_literal "First "]) ^
-                               name))
-                       [@reason.preserve_braces ])] ())
-        [@JSX ]);
-        ((Hello.createElement ~one:(("1")[@reason.raw_literal "1"])
-            ~children:[((React.string
-                           ((("2nd ")[@reason.raw_literal "2nd "]) ^ name))
-                      [@reason.preserve_braces ])] ())
-        [@JSX ])])
-      [@reason.preserve_braces ][@JSX ]))
+      ((ReactDOMRe.createElement ReasonReact.fragment
+          [|(ReactDOMRe.createDOMElementVariadic "div"
+               [|((React.string
+                     ((("First ")[@reason.raw_literal "First "]) ^ name))
+                 [@reason.preserve_braces ])|]);(React.createElement
+                                                   Hello.make
+                                                   (Hello.makeProps
+                                                      ~one:(("1")
+                                                      [@reason.raw_literal
+                                                        "1"])
+                                                      ~children:((React.string
+                                                                    (
+                                                                    (("2nd ")
+                                                                    [@reason.raw_literal
+                                                                    "2nd "])
+                                                                    ^ name))
+                                                      [@reason.preserve_braces
+                                                        ]) ()))|])
+      [@reason.preserve_braces ]))
   [@warning "-16"])
 let make =
   let Test_reason (Props : < name: 'name option   >  Js.t) =
@@ -132,18 +148,25 @@ external makeProps :
 [@@bs.obj ]
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
-      (([((div
-             ~children:[((React.string
-                            ((("First ")[@reason.raw_literal "First "]) ^
-                               name))
-                       [@reason.preserve_braces ])] ())
-        [@JSX ]);
-        ((Hello.createElement ~one:(("1")[@reason.raw_literal "1"])
-            ~children:[((React.string
-                           ((("2nd ")[@reason.raw_literal "2nd "]) ^ name))
-                      [@reason.preserve_braces ])] ())
-        [@JSX ])])
-      [@reason.preserve_braces ][@JSX ]))
+      ((ReactDOMRe.createElement ReasonReact.fragment
+          [|(ReactDOMRe.createDOMElementVariadic "div"
+               [|((React.string
+                     ((("First ")[@reason.raw_literal "First "]) ^ name))
+                 [@reason.preserve_braces ])|]);(React.createElement
+                                                   Hello.make
+                                                   (Hello.makeProps
+                                                      ~one:(("1")
+                                                      [@reason.raw_literal
+                                                        "1"])
+                                                      ~children:((React.string
+                                                                    (
+                                                                    (("2nd ")
+                                                                    [@reason.raw_literal
+                                                                    "2nd "])
+                                                                    ^ name))
+                                                      [@reason.preserve_braces
+                                                        ]) ()))|])
+      [@reason.preserve_braces ]))
   [@warning "-16"])
 let make =
   let Test_reason (Props : < name: 'name option   >  Js.t) =
@@ -160,10 +183,8 @@ module Module_component_with_props =
       ((fun ~lola ->
           ((fun ~cosis ->
               ((Js.log cosis;
-                ((div
-                    ~children:[((React.string lola)
-                              [@reason.preserve_braces ])] ())
-                [@JSX ]))
+                ReactDOMRe.createDOMElementVariadic "div"
+                  [|((React.string lola)[@reason.preserve_braces ])|])
               [@reason.preserve_braces ]))
           [@warning "-16"]))
       [@warning "-16"])
@@ -183,12 +204,12 @@ module Memo =
       a:'a -> ?key:string -> unit -> < a: 'a   >  Js.t = ""[@@bs.obj ]
     let make =
       ((fun ~a ->
-          ((div
-              ~children:[(((Printf.sprintf (("`a` is %s")
-                              [@reason.raw_literal "`a` is %s"]) a)
-                             |> React.string)
-                        [@reason.preserve_braces ])] ())
-          [@reason.preserve_braces ][@JSX ]))
+          ((ReactDOMRe.createDOMElementVariadic "div"
+              [|(((Printf.sprintf (("`a` is %s")
+                     [@reason.raw_literal "`a` is %s"]) a)
+                    |> React.string)
+                [@reason.preserve_braces ])|])
+          [@reason.preserve_braces ]))
       [@warning "-16"])
     let make =
       React.memo
@@ -203,12 +224,10 @@ module MemoCustomCompareProps =
     [@@bs.obj ]
     let make =
       ((fun ~value:(value : string) ->
-          ((div
-              ~children:[((span
-                             ~children:[((value |> React.string)
-                                       [@reason.preserve_braces ])] ())
-                        [@JSX ])] ())
-          [@reason.preserve_braces ][@JSX ]))
+          ((ReactDOMRe.createDOMElementVariadic "div"
+              [|(ReactDOMRe.createDOMElementVariadic "span"
+                   [|((value |> React.string)[@reason.preserve_braces ])|])|])
+          [@reason.preserve_braces ]))
       [@warning "-16"])
     let make =
       let Test_reason$MemoCustomCompareProps
@@ -227,9 +246,11 @@ external makeProps :
 let make =
   ((fun ~children ->
       ((fun ~buttonRef ->
-          ((button ~ref:buttonRef ~className:(("FancyButton")
-              [@reason.raw_literal "FancyButton"]) ~children:[children] ())
-          [@reason.preserve_braces ][@JSX ]))
+          ((ReactDOMRe.createDOMElementVariadic "button"
+              ~props:(ReactDOMRe.domProps ~ref:buttonRef
+                        ~className:(("FancyButton")
+                        [@reason.raw_literal "FancyButton"]) ()) [|children|])
+          [@reason.preserve_braces ]))
       [@warning "-16"]))
   [@warning "-16"])
 let make =
@@ -280,8 +301,9 @@ let make =
   ((fun ~name ->
       ((fun ?isDisabled ->
           ((let onClick event = Js.log event in
-            ((button ~name ~onClick ~disabled:isDisabled ~children:[] ())
-              [@JSX ]))
+            ReactDOMRe.createDOMElementVariadic "button"
+              ~props:(ReactDOMRe.domProps ~name ~onClick ~disabled:isDisabled
+                        ()) [||])
           [@reason.preserve_braces ]))
       [@warning "-16"]))
   [@warning "-16"])
@@ -320,8 +342,7 @@ module Functor(M:X_int) =
                     (("This function should be named `Test$Func`")
                     [@reason.raw_literal
                       "This function should be named `Test$Func`"]) M.x;
-                  ((div ~children:[] ())
-                  [@JSX ]))
+                  ReactDOMRe.createDOMElementVariadic "div" [||])
                 [@reason.preserve_braces ]))
           [@warning "-16"]))
       [@warning "-16"])
