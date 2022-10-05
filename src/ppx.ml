@@ -1233,7 +1233,7 @@ let rewritter =
           in
           match (jsxAttribute, nonJSXAttributes) with
           (* no JSX attribute *)
-          | [], _ -> expression
+          | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
               transformJsxCall mapper callExpression callArguments
                 nonJSXAttributes)
@@ -1278,7 +1278,7 @@ let rewritter =
                    { loc; txt = Ldot (Lident "ReactDOMRe", "createElement") })
                 args)
       (* Delegate to the default mapper, a identity *)
-      | e -> e
+      | e -> super#expression e
     [@@raises Invalid_argument]
 
     method! module_binding module_binding =
