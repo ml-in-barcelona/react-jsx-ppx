@@ -3,8 +3,8 @@ open Ppxlib
 module Helper = Ppxlib.Ast_helper
 
 module Builder = struct
-  (* Ast_builder.Default sets attributes are always set to the empty list.
-     This wrapper re-exports all used fns with attrs arg *)
+  (* Ast_builder.Default assigns attributes to be the empty.
+     This wrapper re-exports all used fns with attrs arg to override them. *)
 
   include Ast_builder.Default
 
