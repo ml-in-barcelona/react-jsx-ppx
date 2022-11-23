@@ -481,14 +481,14 @@ let rewritter =
           let propsCall =
             Builder.pexp_apply ~loc
               (Builder.pexp_ident ~loc
-                 { loc; txt = Ldot (Lident "ReactDOMRe", "domProps") })
+                 { loc; txt = Ldot (Lident "ReactDOM", "domProps") })
               (nonEmptyProps
               |> List.map (fun (label, expression) ->
                      (label, mapper#expression expression)))
           in
           [ (* "div" *)
             (nolabel, componentNameExpr)
-          ; (* ReactDOMRe.props(~className=blabla, ~foo=bar, ()) *)
+          ; (* ReactDOM.props(~className=blabla, ~foo=bar, ()) *)
             (labelled "props", propsCall)
           ; (* [|moreCreateElementCallsHere|] *)
             (nolabel, childrenExpr)
@@ -497,9 +497,9 @@ let rewritter =
     Builder.pexp_apply
       ~loc (* throw away the [@JSX] attribute and keep the others, if any *)
       ~attrs
-      (* ReactDOMRe.createElement *)
+      (* React.createElement *)
       (Builder.pexp_ident ~loc
-         { loc; txt = Ldot (Lident "ReactDOMRe", createElementCall) })
+         { loc; txt = Ldot (Lident "React", createElementCall) })
       args
     [@@raises Invalid_argument]
   in
@@ -1186,7 +1186,7 @@ let rewritter =
               callExpression callArguments
         (* div(~prop1=foo, ~prop2=bar, ~children=[bla], ()) *)
         (* turn that into
-           ReactDOMRe.createElement(~props=ReactDOMRe.props(~props1=foo, ~props2=bar, ()), [|bla|]) *)
+           React.createElement(~props=ReactDOM.domProps(~props1=foo, ~props2=bar, ()), [|bla|]) *)
         | { loc; txt = Lident id } ->
             transformLowercaseCall3 mapper loc attrs callArguments id
         (* Foo.bar(~prop1=foo, ~prop2=bar, ~children=[], ()) *)
@@ -1273,9 +1273,9 @@ let rewritter =
                 ~loc
                   (* throw away the [@JSX] attribute and keep the others, if any *)
                 ~attrs:nonJSXAttributes
-                (* ReactDOMRe.createElement *)
+                (* React.createElement *)
                 (Builder.pexp_ident ~loc
-                   { loc; txt = Ldot (Lident "ReactDOMRe", "createElement") })
+                   { loc; txt = Ldot (Lident "React", "createElement") })
                 args)
       (* Delegate to the default mapper, a identity *)
       | e -> super#expression e
