@@ -461,7 +461,7 @@ let rewritter =
             | Pexp_construct ({ txt = Lident "[]"; _ }, None) )
         ; _
         } ->
-          "createDOMElementVariadic"
+          "createElementVariadic"
       (* [@JSX] div(~children= value), coming from <div> ...(value) </div> *)
       | _ ->
           raise
