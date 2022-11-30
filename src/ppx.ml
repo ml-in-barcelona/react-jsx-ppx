@@ -488,7 +488,7 @@ let rewritter =
           in
           [ (* "div" *)
             (nolabel, componentNameExpr)
-          ; (* ReactDOM.props(~className=blabla, ~foo=bar, ()) *)
+          ; (* ~props=ReactDOM.domProps(~className=blabla, ~foo=bar, ()) *)
             (labelled "props", propsCall)
           ; (* [|moreCreateElementCallsHere|] *)
             (nolabel, childrenExpr)

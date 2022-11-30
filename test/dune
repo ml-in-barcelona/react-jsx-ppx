@@ -1,6 +1,6 @@
 (executable
  (name main)
- (libraries react_jsx_ppx ppxlib))
+ (libraries react-jsx-ppx.ppx ppxlib))
 
 (rule
  (targets reason.result)
