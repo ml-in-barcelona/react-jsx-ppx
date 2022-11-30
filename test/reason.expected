@@ -1,19 +1,19 @@
-let lower = React.createElementVariadic "div" [||]
+let lower = ReactDOMRe.createDOMElementVariadic "div" [||]
 let upper = React.createElement Input.make (Input.makeProps ())
 let lower_with_empty_attr =
-  React.createElementVariadic "div"
+  ReactDOMRe.createDOMElementVariadic "div"
     ~props:(ReactDOM.domProps ~className:(("")[@reason.raw_literal ""]) ())
     [||]
 let lower_opt_attr =
-  React.createElementVariadic "div" ~props:(ReactDOM.domProps ?tabIndex ())
-    [||]
+  ReactDOMRe.createDOMElementVariadic "div"
+    ~props:(ReactDOM.domProps ?tabIndex ()) [||]
 let lower_inner_html =
-  React.createElementVariadic "div"
+  ReactDOMRe.createDOMElementVariadic "div"
     ~props:(ReactDOM.domProps
               ~dangerouslySetInnerHTML:([%bs.obj { __html = text }]) ()) 
     [||]
 let lower_with_style =
-  React.createElementVariadic "div"
+  ReactDOMRe.createDOMElementVariadic "div"
     ~props:(ReactDOM.domProps
               ~style:((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
                          [@reason.raw_literal "gainsboro"]) ())
@@ -27,56 +27,56 @@ let nestedFragment foo bar baz =
     [|foo;(React.createElement ReasonReact.fragment [|bar;baz|])|]
 let nestedFragmentWithlower foo =
   React.createElement ReasonReact.fragment
-    [|(React.createElementVariadic "div" [|foo|])|]
+    [|(ReactDOMRe.createDOMElementVariadic "div" [|foo|])|]
 let upper = React.createElement Upper.make (Upper.makeProps ())
 let upperWithProp =
   React.createElement Upper.make (Upper.makeProps ~count ())
 let upperWithChild foo =
   React.createElement Upper.make (Upper.makeProps ~children:foo ())
 let upperWithChildren foo bar =
-  React.createElementVariadic Upper.make
+  ReactDOMRe.createDOMElementVariadic Upper.make
     (Upper.makeProps ~children:React.null ()) [|foo;bar|]
 let lowerWithChildAndProps foo =
-  React.createElementVariadic "a"
+  ReactDOMRe.createDOMElementVariadic "a"
     ~props:(ReactDOM.domProps ~tabIndex:1 ~href:(("https://example.com")
               [@reason.raw_literal "https://example.com"]) ()) [|foo|]
 let lowerWithChildren foo bar =
-  React.createElementVariadic "lower" [|foo;bar|]
+  ReactDOMRe.createDOMElementVariadic "lower" [|foo;bar|]
 let nestedElement =
   React.createElement Foo.Bar.make
     (Foo.Bar.makeProps ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ())
 let t =
   React.createElement FancyButton.make
     (FancyButton.makeProps ~ref:buttonRef
-       ~children:(React.createElementVariadic "div" [||]) ())
+       ~children:(ReactDOMRe.createDOMElementVariadic "div" [||]) ())
 let t =
-  React.createElementVariadic "button"
+  ReactDOMRe.createDOMElementVariadic "button"
     ~props:(ReactDOM.domProps ~ref ~className:(("FancyButton")
               [@reason.raw_literal "FancyButton"]) ()) [|children|]
 let lowerWithChildrenComplex =
-  React.createElementVariadic "div"
+  ReactDOMRe.createDOMElementVariadic "div"
     ~props:(ReactDOM.domProps ~className:(("flex-container")
               [@reason.raw_literal "flex-container"]) ())
-    [|(React.createElementVariadic "div"
+    [|(ReactDOMRe.createDOMElementVariadic "div"
          ~props:(ReactDOM.domProps ~className:(("sidebar")
                    [@reason.raw_literal "sidebar"]) ())
-         [|(React.createElementVariadic "h2"
+         [|(ReactDOMRe.createDOMElementVariadic "h2"
               ~props:(ReactDOM.domProps ~className:(("title")
                         [@reason.raw_literal "title"]) ())
               [|(((("jsoo-react")[@reason.raw_literal "jsoo-react"]) |> s)
-                [@reason.preserve_braces ])|]);(React.createElementVariadic
+                [@reason.preserve_braces ])|]);(ReactDOMRe.createDOMElementVariadic
                                                   "nav"
                                                   ~props:(ReactDOM.domProps
                                                             ~className:(("menu")
                                                             [@reason.raw_literal
                                                               "menu"]) ())
-                                                  [|(React.createElementVariadic
+                                                  [|(ReactDOMRe.createDOMElementVariadic
                                                        "ul"
                                                        [|(((examples |>
                                                               (List.map
                                                                  (fun e ->
                                                                     ((
-                                                                    React.createElementVariadic
+                                                                    ReactDOMRe.createDOMElementVariadic
                                                                     "li"
                                                                     ~props:(
                                                                     ReactDOM.domProps
@@ -85,7 +85,7 @@ let lowerWithChildrenComplex =
                                                                     [@reason.preserve_braces
                                                                     ]) ())
                                                                     [|(
-                                                                    React.createElementVariadic
+                                                                    ReactDOMRe.createDOMElementVariadic
                                                                     "a"
                                                                     ~props:(
                                                                     ReactDOM.domProps
@@ -120,7 +120,7 @@ external makeProps :
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       ((React.createElement ReasonReact.fragment
-          [|(React.createElementVariadic "div"
+          [|(ReactDOMRe.createDOMElementVariadic "div"
                [|((React.string
                      ((("First ")[@reason.raw_literal "First "]) ^ name))
                  [@reason.preserve_braces ])|]);(React.createElement
@@ -149,7 +149,7 @@ external makeProps :
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       ((React.createElement ReasonReact.fragment
-          [|(React.createElementVariadic "div"
+          [|(ReactDOMRe.createDOMElementVariadic "div"
                [|((React.string
                      ((("First ")[@reason.raw_literal "First "]) ^ name))
                  [@reason.preserve_braces ])|]);(React.createElement
@@ -183,7 +183,7 @@ module Module_component_with_props =
       ((fun ~lola ->
           ((fun ~cosis ->
               ((Js.log cosis;
-                React.createElementVariadic "div"
+                ReactDOMRe.createDOMElementVariadic "div"
                   [|((React.string lola)[@reason.preserve_braces ])|])
               [@reason.preserve_braces ]))
           [@warning "-16"]))
@@ -204,7 +204,7 @@ module Memo =
       a:'a -> ?key:string -> unit -> < a: 'a   >  Js.t = ""[@@bs.obj ]
     let make =
       ((fun ~a ->
-          ((React.createElementVariadic "div"
+          ((ReactDOMRe.createDOMElementVariadic "div"
               [|(((Printf.sprintf (("`a` is %s")
                      [@reason.raw_literal "`a` is %s"]) a)
                     |> React.string)
@@ -224,8 +224,8 @@ module MemoCustomCompareProps =
     [@@bs.obj ]
     let make =
       ((fun ~value:(value : string) ->
-          ((React.createElementVariadic "div"
-              [|(React.createElementVariadic "span"
+          ((ReactDOMRe.createDOMElementVariadic "div"
+              [|(ReactDOMRe.createDOMElementVariadic "span"
                    [|((value |> React.string)[@reason.preserve_braces ])|])|])
           [@reason.preserve_braces ]))
       [@warning "-16"])
@@ -246,7 +246,7 @@ external makeProps :
 let make =
   ((fun ~children ->
       ((fun ~buttonRef ->
-          ((React.createElementVariadic "button"
+          ((ReactDOMRe.createDOMElementVariadic "button"
               ~props:(ReactDOM.domProps ~ref:buttonRef
                         ~className:(("FancyButton")
                         [@reason.raw_literal "FancyButton"]) ()) [|children|])
@@ -260,24 +260,24 @@ let make =
        make ~buttonRef:(Props ## buttonRef) ~children:(Props ## children) in
      Test_reason)
 let testAttributes =
-  React.createElementVariadic "div"
+  ReactDOMRe.createDOMElementVariadic "div"
     ~props:(ReactDOM.domProps ~translate:(("yes")[@reason.raw_literal "yes"])
               ())
-    [|(React.createElementVariadic "picture"
+    [|(ReactDOMRe.createDOMElementVariadic "picture"
          ~props:(ReactDOM.domProps ~id:(("idpicture")
                    [@reason.raw_literal "idpicture"]) ())
-         [|(React.createElementVariadic "img"
+         [|(ReactDOMRe.createDOMElementVariadic "img"
               ~props:(ReactDOM.domProps ~src:(("picture/img.png")
                         [@reason.raw_literal "picture/img.png"])
                         ~alt:(("test picture/img.png")
                         [@reason.raw_literal "test picture/img.png"])
                         ~id:(("idimg")[@reason.raw_literal "idimg"]) ()) 
-              [||]);(React.createElementVariadic "source"
+              [||]);(ReactDOMRe.createDOMElementVariadic "source"
                        ~props:(ReactDOM.domProps ~type_:(("image/webp")
                                  [@reason.raw_literal "image/webp"])
                                  ~src:(("picture/img1.webp")
                                  [@reason.raw_literal "picture/img1.webp"])
-                                 ()) [||]);(React.createElementVariadic
+                                 ()) [||]);(ReactDOMRe.createDOMElementVariadic
                                               "source"
                                               ~props:(ReactDOM.domProps
                                                         ~type_:(("image/jpeg")
@@ -288,7 +288,7 @@ let testAttributes =
                                                           "picture/img2.jpg"])
                                                         ()) [||])|])|]
 let randomElement =
-  React.createElementVariadic "text"
+  ReactDOMRe.createDOMElementVariadic "text"
     ~props:(ReactDOM.domProps ~dx:(("1 2")[@reason.raw_literal "1 2"])
               ~dy:(("3 4")[@reason.raw_literal "3 4"]) ()) [||]
 external makeProps :
@@ -301,7 +301,7 @@ let make =
   ((fun ~name ->
       ((fun ?isDisabled ->
           ((let onClick event = Js.log event in
-            React.createElementVariadic "button"
+            ReactDOMRe.createDOMElementVariadic "button"
               ~props:(ReactDOM.domProps ~name ~onClick ~disabled:isDisabled
                         ()) [||])
           [@reason.preserve_braces ]))
@@ -342,7 +342,7 @@ module Functor(M:X_int) =
                     (("This function should be named `Test$Func`")
                     [@reason.raw_literal
                       "This function should be named `Test$Func`"]) M.x;
-                  React.createElementVariadic "div" [||])
+                  ReactDOMRe.createDOMElementVariadic "div" [||])
                 [@reason.preserve_braces ]))
           [@warning "-16"]))
       [@warning "-16"])
