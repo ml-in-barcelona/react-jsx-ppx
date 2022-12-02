@@ -27,6 +27,10 @@ module Js_runtime = struct
       Builder.pexp_ident ~loc
         { loc; txt = Ldot (Lident "React", "createElement") }
 
+    let createElementVariadic ~loc =
+      Builder.pexp_ident ~loc
+        { loc; txt = Ldot (Lident "React", "createElementVariadic") }
+
     let null ~loc =
       Builder.pexp_ident ~loc { loc; txt = Ldot (Lident "React", "null") }
 
@@ -45,9 +49,6 @@ module Js_runtime = struct
       let createDOMElementVariadic =
         Ldot (Lident "ReactDOMRe", "createDOMElementVariadic")
     end
-
-    let createDOMElementVariadic ~loc =
-      Builder.pexp_ident ~loc { loc; txt = Ident.createDOMElementVariadic }
   end
 
   module ReasonReact = struct
@@ -471,7 +472,7 @@ let rewritter =
           ]
     | Some children ->
         Builder.pexp_apply ~loc ~attrs
-          (Js_runtime.ReactDOMRe.createDOMElementVariadic ~loc)
+          (Js_runtime.React.createElementVariadic ~loc)
           [ (nolabel, Builder.pexp_ident ~loc { txt = ident; loc })
           ; (nolabel, props)
           ; (nolabel, children)

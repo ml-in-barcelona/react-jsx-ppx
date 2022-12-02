@@ -34,7 +34,7 @@ let upperWithProp =
 let upperWithChild foo =
   React.createElement Upper.make (Upper.makeProps ~children:foo ())
 let upperWithChildren foo bar =
-  ReactDOMRe.createDOMElementVariadic Upper.make
+  React.createElementVariadic Upper.make
     (Upper.makeProps ~children:React.null ()) [|foo;bar|]
 let lowerWithChildAndProps foo =
   ReactDOMRe.createDOMElementVariadic "a"
