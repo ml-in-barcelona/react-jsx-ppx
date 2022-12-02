@@ -21,6 +21,42 @@ module Builder = struct
     { vd with pval_attributes = attrs }
 end
 
+module Js_runtime = struct
+  module React = struct
+    let createElement ~loc =
+      Builder.pexp_ident ~loc
+        { loc; txt = Ldot (Lident "React", "createElement") }
+
+    let null ~loc =
+      Builder.pexp_ident ~loc { loc; txt = Ldot (Lident "React", "null") }
+
+    let componentLike ~loc =
+      { loc; txt = Ldot (Lident "React", "componentLike") }
+  end
+
+  module ReactDOM = struct
+    let domProps ~loc =
+      Builder.pexp_ident ~loc
+        { loc; txt = Ldot (Lident "ReactDOM", "domProps") }
+  end
+
+  module ReactDOMRe = struct
+    module Ident = struct
+      let createDOMElementVariadic =
+        Ldot (Lident "ReactDOMRe", "createDOMElementVariadic")
+    end
+
+    let createDOMElementVariadic ~loc =
+      Builder.pexp_ident ~loc { loc; txt = Ident.createDOMElementVariadic }
+  end
+
+  module ReasonReact = struct
+    let fragment ~loc =
+      Builder.pexp_ident ~loc
+        { loc; txt = Ldot (Lident "ReasonReact", "fragment") }
+  end
+end
+
 let rec find_opt p = function
   | [] -> None
   | x :: l -> if p x then Some x else find_opt p l
@@ -393,10 +429,7 @@ let rewritter =
         | ListLiteral expression ->
             (* this is a hack to support react components that introspect into their children *)
             childrenArg := Some expression;
-            [ ( labelled "children"
-              , Builder.pexp_ident ~loc
-                  { loc; txt = Ldot (Lident "React", "null") } )
-            ])
+            [ (labelled "children", Js_runtime.React.null ~loc) ])
       @ [ (nolabel, Builder.pexp_construct ~loc { loc; txt = Lident "()" } None)
         ]
     in
@@ -432,17 +465,13 @@ let rewritter =
     match !childrenArg with
     | None ->
         Builder.pexp_apply ~loc ~attrs
-          (Builder.pexp_ident ~loc
-             { loc; txt = Ldot (Lident "React", "createElement") })
+          (Js_runtime.React.createElement ~loc)
           [ (nolabel, Builder.pexp_ident ~loc { txt = ident; loc })
           ; (nolabel, props)
           ]
     | Some children ->
         Builder.pexp_apply ~loc ~attrs
-          (Builder.pexp_ident ~loc
-             { loc
-             ; txt = Ldot (Lident "ReactDOMRe", "createDOMElementVariadic")
-             })
+          (Js_runtime.ReactDOMRe.createDOMElementVariadic ~loc)
           [ (nolabel, Builder.pexp_ident ~loc { txt = ident; loc })
           ; (nolabel, props)
           ; (nolabel, children)
@@ -463,7 +492,7 @@ let rewritter =
             | Pexp_construct ({ txt = Lident "[]"; _ }, None) )
         ; _
         } ->
-          Ldot (Lident "ReactDOMRe", "createDOMElementVariadic")
+          Js_runtime.ReactDOMRe.Ident.createDOMElementVariadic
       (* [@JSX] div(~children= value), coming from <div> ...(value) </div> *)
       | _ ->
           raise
@@ -482,8 +511,7 @@ let rewritter =
       | nonEmptyProps ->
           let propsCall =
             Builder.pexp_apply ~loc
-              (Builder.pexp_ident ~loc
-                 { loc; txt = Ldot (Lident "ReactDOM", "domProps") })
+              (Js_runtime.ReactDOM.domProps ~loc)
               (nonEmptyProps
               |> List.map (fun (label, expression) ->
                      (label, mapper#expression expression)))
@@ -695,9 +723,7 @@ let rewritter =
             (* can't be an arrow because it will defensively uncurry *)
             let newExternalType =
               Ptyp_constr
-                ( { loc = pstr_loc
-                  ; txt = Ldot (Lident "React", "componentLike")
-                  }
+                ( Js_runtime.React.componentLike ~loc:pstr_loc
                 , [ retPropsType; innerType ] )
             in
             let newStructure =
@@ -1142,9 +1168,7 @@ let rewritter =
             (* can't be an arrow because it will defensively uncurry *)
             let newExternalType =
               Ptyp_constr
-                ( { loc = psig_loc
-                  ; txt = Ldot (Lident "React", "componentLike")
-                  }
+                ( Js_runtime.React.componentLike ~loc:psig_loc
                 , [ retPropsType; innerType ] )
             in
             let newStructure =
@@ -1256,16 +1280,12 @@ let rewritter =
           (* no JSX attribute *)
           | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
-              let fragment =
-                Builder.pexp_ident ~loc
-                  { loc; txt = Ldot (Lident "ReasonReact", "fragment") }
-              in
               let childrenExpr =
                 transformChildrenIfList ~loc ~mapper listItems
               in
               let args =
                 [ (* "div" *)
-                  (nolabel, fragment)
+                  (nolabel, Js_runtime.ReasonReact.fragment ~loc)
                 ; (* [|moreCreateElementCallsHere|] *)
                   (nolabel, childrenExpr)
                 ]
@@ -1275,8 +1295,7 @@ let rewritter =
                   (* throw away the [@JSX] attribute and keep the others, if any *)
                 ~attrs:nonJSXAttributes
                 (* React.createElement *)
-                (Builder.pexp_ident ~loc
-                   { loc; txt = Ldot (Lident "React", "createElement") })
+                (Js_runtime.React.createElement ~loc)
                 args)
       (* Delegate to the default mapper, a identity *)
       | e -> super#expression e
