@@ -34,8 +34,8 @@ let upperWithProp =
 let upperWithChild foo =
   React.createElement Upper.make (Upper.makeProps ~children:foo ())
 let upperWithChildren foo bar =
-  React.createElementVariadic Upper.make
-    (Upper.makeProps ~children:React.null ()) [|foo;bar|]
+  React.createElement Upper.make (Upper.makeProps ~children:React.null ())
+    [|foo;bar|]
 let lowerWithChildAndProps foo =
   ReactDOMRe.createDOMElementVariadic "a"
     ~props:(ReactDOM.domProps ~tabIndex:1 ~href:(("https://example.com")
