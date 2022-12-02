@@ -41,14 +41,13 @@ module Js_runtime = struct
   end
 
   module ReactDOMRe = struct
-    module Ident = struct
-      let createDOMElementVariadic =
-        Ldot (Lident "ReactDOMRe", "createDOMElementVariadic")
-    end
+    let createDOMElementVariadic ~loc =
+      Builder.pexp_ident ~loc
+        { loc; txt = Ldot (Lident "ReactDOMRe", "createDOMElementVariadic") }
 
     let createElement ~loc =
       Builder.pexp_ident ~loc
-        { loc; txt = Ldot (Lident "React", "createElement") }
+        { loc; txt = Ldot (Lident "ReactDOMRe", "createElement") }
   end
 
   module ReasonReact = struct
@@ -493,7 +492,7 @@ let rewritter =
             | Pexp_construct ({ txt = Lident "[]"; _ }, None) )
         ; _
         } ->
-          Js_runtime.ReactDOMRe.Ident.createDOMElementVariadic
+          Js_runtime.ReactDOMRe.createDOMElementVariadic ~loc
       (* [@JSX] div(~children= value), coming from <div> ...(value) </div> *)
       | _ ->
           raise
@@ -527,10 +526,8 @@ let rewritter =
     in
     Builder.pexp_apply
       ~loc (* throw away the [@JSX] attribute and keep the others, if any *)
-      ~attrs
-      (* React.createElement *)
-      (Builder.pexp_ident ~loc { loc; txt = createElementCall })
-      args
+      ~attrs (* React.createElement *)
+      createElementCall args
     [@@raises Invalid_argument]
   in
 
@@ -1296,7 +1293,7 @@ let rewritter =
                   (* throw away the [@JSX] attribute and keep the others, if any *)
                 ~attrs:nonJSXAttributes
                 (* React.createElement *)
-                (Js_runtime.React.createElement ~loc)
+                (Js_runtime.ReactDOMRe.createElement ~loc)
                 args)
       (* Delegate to the default mapper, a identity *)
       | e -> super#expression e

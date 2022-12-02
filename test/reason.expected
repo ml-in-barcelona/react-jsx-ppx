@@ -18,24 +18,33 @@ let lower_with_style =
               ~style:((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
                          [@reason.raw_literal "gainsboro"]) ())
               [@reason.preserve_braces ]) ()) [||]
-let fragment foo = ((React.createElement ReasonReact.fragment [|foo|])
+let fragment foo = ((ReactDOMRe.createElement ReasonReact.fragment [|foo|])
   [@bla ])
 let polyChildrenFragment foo bar =
-  React.createElement ReasonReact.fragment [|foo;bar|]
+  ReactDOMRe.createElement ReasonReact.fragment [|foo;bar|]
 let nestedFragment foo bar baz =
-  React.createElement ReasonReact.fragment
-    [|foo;(React.createElement ReasonReact.fragment [|bar;baz|])|]
+  ReactDOMRe.createElement ReasonReact.fragment
+    [|foo;(ReactDOMRe.createElement ReasonReact.fragment [|bar;baz|])|]
 let nestedFragmentWithlower foo =
-  React.createElement ReasonReact.fragment
+  ReactDOMRe.createElement ReasonReact.fragment
     [|(ReactDOMRe.createDOMElementVariadic "div" [|foo|])|]
+let fragmentWithUpper foo =
+  ReactDOMRe.createElement ReasonReact.fragment
+    [|(React.createElement Upper.make (Upper.makeProps ~children:foo ()))|]
+let upperWithFragment foo =
+  React.createElement Upper.make
+    (Upper.makeProps
+       ~children:(ReactDOMRe.createElement ReasonReact.fragment
+                    [|(ReactDOMRe.createDOMElementVariadic "div" [||]);(
+                      ReactDOMRe.createDOMElementVariadic "div" [||])|]) ())
 let upper = React.createElement Upper.make (Upper.makeProps ())
 let upperWithProp =
   React.createElement Upper.make (Upper.makeProps ~count ())
 let upperWithChild foo =
   React.createElement Upper.make (Upper.makeProps ~children:foo ())
 let upperWithChildren foo bar =
-  React.createElement Upper.make (Upper.makeProps ~children:React.null ())
-    [|foo;bar|]
+  ReactDOMRe.createElement Upper.make
+    (Upper.makeProps ~children:React.null ()) [|foo;bar|]
 let lowerWithChildAndProps foo =
   ReactDOMRe.createDOMElementVariadic "a"
     ~props:(ReactDOM.domProps ~tabIndex:1 ~href:(("https://example.com")
@@ -119,7 +128,7 @@ external makeProps :
 [@@bs.obj ]
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
-      ((React.createElement ReasonReact.fragment
+      ((ReactDOMRe.createElement ReasonReact.fragment
           [|(ReactDOMRe.createDOMElementVariadic "div"
                [|((React.string
                      ((("First ")[@reason.raw_literal "First "]) ^ name))
@@ -148,7 +157,7 @@ external makeProps :
 [@@bs.obj ]
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
-      ((React.createElement ReasonReact.fragment
+      ((ReactDOMRe.createElement ReasonReact.fragment
           [|(ReactDOMRe.createDOMElementVariadic "div"
                [|((React.string
                      ((("First ")[@reason.raw_literal "First "]) ^ name))
